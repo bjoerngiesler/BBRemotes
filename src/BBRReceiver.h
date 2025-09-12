@@ -6,13 +6,13 @@
 #include <functional>
 
 #include "BBRTypes.h"
-#include "BBRAxisInputManager.h"
+#include "BBRMixManager.h"
 
 namespace bb {
 namespace rmt {
 
 //! Abstract receiver superclass
-class Receiver: public AxisInputManager {
+class Receiver: public MixManager {
 public:
     /*
         Input handling

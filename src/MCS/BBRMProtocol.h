@@ -20,13 +20,16 @@ public:
 
     virtual Transmitter* createTransmitter(uint8_t transmitterType=0);
     virtual Receiver* createReceiver();
-    virtual Configurator* createConfigurator();
 
     virtual uint8_t numTransmitterTypes() { return 2; }
     virtual uint8_t numChannels(uint8_t transmitterType) { return 19; }
 
     virtual bool discoverNodes(float timeout = 5);
     bool pairWith(const NodeDescription& descr);
+
+    virtual bool receiverSideMixing() { return true; }
+    virtual bool retrieveInputs(const NodeDescription& descr);
+    virtual bool retrieveMixes(const NodeDescription& descr);
 
     virtual bool step();
     virtual bool sendPacket(const NodeAddr& addr, const MPacket& packet, bool bumpSeqnum=true) = 0;
@@ -45,14 +48,16 @@ public:
     void setPairingSecret(uint32_t secret) { pairingSecret_ = secret; }
 
     virtual bool incomingPacket(const NodeAddr& addr, const MPacket& packet);
-	virtual bool incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MConfigPacket& packet);
+	virtual bool incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, MConfigPacket& packet);
 	virtual bool incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MPairingPacket& packet);
     virtual bool waitForPacket(std::function<bool(const MPacket&, const NodeAddr& )> fn, 
                                NodeAddr& addr, MPacket& packet, 
                                bool handleOthers, float timeout) = 0;
 
 protected:
-	uint8_t builderId_, stationId_, stationDetail_;
+    bool isPairedAsConfigurator(const NodeAddr& addr);
+
+    uint8_t builderId_, stationId_, stationDetail_;
     uint32_t pairingSecret_;
 	MPacket::PacketSource source_;
     uint8_t seqnum_;

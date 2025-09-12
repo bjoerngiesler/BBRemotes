@@ -20,6 +20,9 @@ static const uint8_t ESC_ESC = 0x23;
 static const uint8_t ESC_SOP = 0x05;
 static const uint8_t ESC_EOP = 0x50;
 
+static std::vector<std::string> inputNames_ = {INPUT_SPEED, INPUT_TURN_ANGLE, INPUT_TURN_RATE, INPUT_DOME_ANGLE, INPUT_DOME_RATE, 
+                                               INPUT_EMOTE_0, INPUT_EMOTE_1, INPUT_EMOTE_2, INPUT_EMOTE_3, INPUT_EMOTE_4};
+
 SpheroProtocol::SpheroProtocol() {
     seqnum_ = 0;
     pInitialChar_ = nullptr;
@@ -41,6 +44,12 @@ bool SpheroProtocol::isAcceptableForDiscovery(BLEAdvertisedDevice advertisedDevi
     return false;
 }
 
+bool SpheroProtocol::syncInputs(const NodeDescription& descr) {
+    inputs_[descr.addr] = inputNames_;
+    return true;
+}
+
+
 bool SpheroProtocol::pairWith(const NodeDescription& descr) {
     if(isPaired(descr.addr)) {
         Serial.printf("Already paired with %s\n", descr.addr.toString().c_str());
@@ -57,6 +66,8 @@ bool SpheroProtocol::pairWith(const NodeDescription& descr) {
         Serial.printf("Could not connect\n");
         return false;
     }
+
+    mixManagers_[descr.addr] = MixManager();
     
     return Protocol::pairWith(descr);
 }

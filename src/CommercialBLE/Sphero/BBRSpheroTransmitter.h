@@ -23,9 +23,6 @@ public:
 
     bool canAddAxes() { return true; }
 
-    virtual uint8_t numInputs();
-    virtual const std::string& inputName(uint8_t input);
-
     virtual bool transmit();
 
     virtual bool receiverSideMapping() { return false; }

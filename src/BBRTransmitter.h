@@ -6,7 +6,6 @@
 
 #include "BBRTypes.h"
 #include "BBRProtocol.h"
-#include "BBRAxisInputManager.h"
 
 namespace bb {
 namespace rmt {
@@ -14,7 +13,7 @@ namespace rmt {
 class Protocol;
 
 //! Abstract transmitter superclass
-class Transmitter: public AxisInputManager {
+class Transmitter {
 public:
     /* 
         Axis handling
@@ -33,9 +32,6 @@ public:
     virtual uint8_t bitDepthForAxis(uint8_t axis);
     virtual bool canAddAxes() { return true; };
     virtual uint8_t addAxis(const std::string& name, uint8_t bitDepth);
-
-    virtual bool receiverSideMapping() = 0;
-    virtual bool syncReceiverSideMapping() = 0;
 
     /*
         Value setting, transmission and computation
@@ -57,8 +53,7 @@ public:
     virtual uint32_t rawAxisValue(uint8_t axis);
 
     //! Always computed as a percentage from -1 to 1 internally
-    virtual float computeInputValue(uint8_t input);
-    virtual float computeInputValue(const std::string& name) { return computeInputValue(inputWithName(name)); }
+    virtual float computeInputValue(const AxisMix& mix);
     
     virtual bool transmit() = 0;
 

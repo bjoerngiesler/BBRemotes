@@ -11,24 +11,8 @@
 */
 
 #include <LibBBRemotes.h>
-#include <MCS/ESP/BBRMESPProtocol.h>
-
 using namespace bb::rmt;
 
-// Uncomment the protocol you want to use
-ProtocolType type = 
-  // MONACO_XBEE;
-  MONACO_ESPNOW;
-  // MONACO_BLE;
-  // MONACO_UDP;
-  // SPHERO_BLE;
-  // DROIDDEPOT_BLE;
-  // SPEKTRUM_DSSS;
-
-// Code below
-
-#define XSTR(s) STR(s)
-#define STR(s) #s
 MESPProtocol protocol;
 Receiver *rx = nullptr;
 
@@ -39,7 +23,7 @@ uint8_t speedInput, turnInput;
 
 // Called whenever a data packet was received.
 void dataFinishedCB(const NodeAddr& addr, uint8_t seqnum) {
-  Serial.printf("Speed: %f Turn: %f Seqnum: %d\n", speed, turn, seqnum);
+  //Serial.printf("Speed: %f Turn: %f Seqnum: %d\n", speed, turn, seqnum);
 }
 
 // Called whenever nothing was received for a certain time (default: 0.5s).
@@ -52,7 +36,6 @@ void setup() {
   Serial.begin(2000000);
   
   Serial.printf("MCS Receiver example\n");
-  Serial.printf("Protocol used: %s\n", XSTR(PROTOCOL));
 
   // Initialize the protocol, giving this station a name
   protocol.init("Receiver");
@@ -68,8 +51,8 @@ void setup() {
   turnInput = rx->addInput(INPUT_TURN_RATE, turn);
 
   // Tell the receiver which axis to map to which input, and how to interpolate
-  rx->addMix(speedInput, AxisMix(0, INTERP_LIN_CENTERED));
-  rx->addMix(turnInput, AxisMix(1, INTERP_LIN_CENTERED));
+  rx->setMix(speedInput, AxisMix(0, INTERP_LIN_CENTERED));
+  rx->setMix(turnInput, AxisMix(1, INTERP_LIN_CENTERED));
 
   // Tell the receiver to call dataFinishedCB() whenever a packet was handled
   rx->setDataFinishedCallback(dataFinishedCB);

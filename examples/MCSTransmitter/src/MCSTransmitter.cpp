@@ -103,6 +103,8 @@ void setup() {
     delay(1000);
   }
 
+  protocol->retrieveInputs();
+
   tx->setAxisName(JOY_HOR_AXIS, "JoyHor");
   tx->setAxisName(JOY_VER_AXIS, "JoyVer");
 }

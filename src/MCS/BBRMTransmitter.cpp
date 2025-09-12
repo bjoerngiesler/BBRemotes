@@ -54,7 +54,3 @@ bool MTransmitter::transmit(){
 
     return true;
 }
-
-bool MTransmitter::syncReceiverSideMapping() {
-    return false;
-}

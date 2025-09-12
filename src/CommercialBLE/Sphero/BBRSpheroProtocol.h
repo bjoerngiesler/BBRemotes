@@ -16,13 +16,13 @@ public:
     virtual uint8_t numTransmitterTypes();
     virtual Transmitter* createTransmitter(uint8_t transmitterType=0);
     virtual Receiver* createReceiver() { return nullptr; }
-    virtual Configurator* createConfigurator() { return nullptr; }
 
     virtual bool pairWith(const NodeDescription& descr);
 
     virtual bool isAcceptableForDiscovery(BLEAdvertisedDevice advertisedDevice);
     virtual bool acceptsPairingRequests() { return false; }
 
+    virtual bool syncInputs(const NodeDescription& descr);
 
     virtual bool connect();
 

@@ -19,9 +19,6 @@ public:
 
     virtual bool transmit();
 
-    virtual bool receiverSideMapping() { return true; }
-    virtual bool syncReceiverSideMapping();
-
     virtual bool requiresConnection() { return false; }
 };
 }; // rmt

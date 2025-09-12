@@ -22,10 +22,6 @@ static const SpheroProtocol::Command CMD_HOLO = {0x0a, 0x1a, 0x0e};   // 3 bytes
 
 
 static const std::string EmptyString = "";
-
-static std::vector<std::string> inputNames_ = {INPUT_SPEED, INPUT_TURN_ANGLE, INPUT_TURN_RATE, INPUT_DOME_ANGLE, INPUT_DOME_RATE, 
-                                               INPUT_EMOTE_0, INPUT_EMOTE_1, INPUT_EMOTE_2, INPUT_EMOTE_3, INPUT_EMOTE_4};
-
 static std::string invalidAxisName = "INVALID";
 
 SpheroTransmitter::SpheroTransmitter(SpheroProtocol *proto): TransmitterBase<SpheroProtocol>(proto) {
@@ -40,23 +36,19 @@ SpheroTransmitter::SpheroTransmitter(SpheroProtocol *proto): TransmitterBase<Sph
     turnAngle_ = 0;
 }
 
-uint8_t SpheroTransmitter::numInputs() {
-    return inputNames_.size();
-}
-
-const std::string& SpheroTransmitter::inputName(uint8_t input) {
-    if(input >= inputNames_.size()) return EmptyString;
-    return inputNames_[input];
-}
-
-
 bool SpheroTransmitter::transmit() {
     float dome = 0;
-    
-    if(hasMixForInput(INPUT_DOME_ANGLE)) {
-        dome = computeInputValue(INPUT_DOME_ANGLE) * 180.0f;
-    } else if(hasMixForInput(INPUT_DOME_RATE)) {
-        domeAngle_ += computeInputValue(INPUT_DOME_RATE) * 1.8f;
+    const MixManager& mgr = protocol_->mixManager();
+    if(protocol_->pairedNodes().size() == 0) return false;
+
+    const NodeDescription& descr = protocol_->pairedNodes()[0];
+    const NodeAddr& addr = descr.addr;
+    AxisMix mix;
+
+    if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_DOME_ANGLE))).isValid()) {
+        dome = computeInputValue(mix) * 180.0f;
+    } else if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_DOME_RATE))).isValid()) {
+        domeAngle_ += computeInputValue(mix) * 1.8f;
         if(domeAngle_ > 100) domeAngle_ = 100;
         if(domeAngle_ < -100) domeAngle_ = -100;
         dome = domeAngle_;
@@ -65,12 +57,12 @@ bool SpheroTransmitter::transmit() {
     floatToBuf(dome, floatBuf);
     protocol_->transmitCommand(CMD_DOME, floatBuf, 4);
 
-    float speed = computeInputValue(INPUT_SPEED) * 255.0f;
+    float speed = computeInputValue(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_SPEED))) * 255.0f;
     float turn = 0;
-    if(hasMixForInput(INPUT_TURN_ANGLE)) {
-        turn = computeInputValue(INPUT_TURN_ANGLE) * 360.0f;
-    } else if(hasMixForInput(INPUT_TURN_RATE)) {
-        turnAngle_ += computeInputValue(INPUT_TURN_RATE) * 3.6f;
+    if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_TURN_ANGLE))).isValid()) {
+        turn = computeInputValue(mix) * 360.0f;
+    } else if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_TURN_RATE))).isValid()) {
+        turnAngle_ += computeInputValue(mix) * 3.6f;
         if(turnAngle_ > 360) turnAngle_ -= 360;
         if(turnAngle_ < 0) turnAngle_ += 360;
         turn = turnAngle_;
@@ -86,51 +78,47 @@ bool SpheroTransmitter::transmit() {
     protocol_->transmitCommand(CMD_MOVE, moveBuf, 4);
 
     uint8_t emoteBuf[2];
-    if(hasMixForInput(INPUT_EMOTE_0)) {
-        float emote = computeInputValue(INPUT_EMOTE_0);
-        if(emote > 0.5 && emote != lastEmote0_) {
-            emoteBuf[0] = 0; 
-            emoteBuf[1] = 0;
-            protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
-        }
-        lastEmote0_ = emote;
+    float emote;
+
+    emote = computeInputValue(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_0)));
+    if(emote > 0.5 && emote != lastEmote0_) {
+        emoteBuf[0] = 0; 
+        emoteBuf[1] = 0;
+        protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
     }
-    if(hasMixForInput(INPUT_EMOTE_1)) {
-        float emote = computeInputValue(INPUT_EMOTE_1);
-        if(emote > 0.5 && emote != lastEmote1_) {
-            emoteBuf[0] = 0; 
-            emoteBuf[1] = 1;
-            protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
-        }
-        lastEmote1_ = emote;
+    lastEmote0_ = emote;
+
+    emote = computeInputValue(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_1)));
+    if(emote > 0.5 && emote != lastEmote1_) {
+        emoteBuf[0] = 0; 
+        emoteBuf[1] = 1;
+        protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
     }
-    if(hasMixForInput(INPUT_EMOTE_2)) {
-        float emote = computeInputValue(INPUT_EMOTE_2);
-        if(emote > 0.5 && emote != lastEmote2_) {
-            emoteBuf[0] = 0; 
-            emoteBuf[1] = 2;
-            protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
-        }
-        lastEmote2_ = emote;
+    lastEmote1_ = emote;
+
+    emote = computeInputValue(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_2)));
+    if(emote > 0.5 && emote != lastEmote2_) {
+        emoteBuf[0] = 0; 
+        emoteBuf[1] = 2;
+        protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
     }
-    if(hasMixForInput(INPUT_EMOTE_3)) {
-        float emote = computeInputValue(INPUT_EMOTE_3);
-        if(emote > 0.5 && emote != lastEmote3_) {
-            emoteBuf[0] = 0; 
-            emoteBuf[1] = 0;
-            protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
-        }
-        lastEmote3_ = emote;
+    lastEmote2_ = emote;
+
+    emote = computeInputValue(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_3)));
+    if(emote > 0.5 && emote != lastEmote3_) {
+        emoteBuf[0] = 0; 
+        emoteBuf[1] = 0;
+        protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
     }
-    if(hasMixForInput(INPUT_EMOTE_4)) {
-        float emote = computeInputValue(INPUT_EMOTE_4);
-        if(emote > 0.5 && emote != lastEmote4_) {
-            emoteBuf[0] = 0; 
-            emoteBuf[1] = 0;
-            protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
-        }
-        lastEmote4_ = emote;
+    lastEmote3_ = emote;
+
+    emote = computeInputValue(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_4)));
+    if(emote > 0.5 && emote != lastEmote4_) {
+        emoteBuf[0] = 0; 
+        emoteBuf[1] = 0;
+        protocol_->transmitCommand(CMD_ANIM, emoteBuf, 2);
     }
+    lastEmote4_ = emote;
     
     return true;
 }

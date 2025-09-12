@@ -9,6 +9,10 @@ using namespace bb::rmt;
 #define WRAPPEDDIFF(a, b, max) ((a>=b) ? a-b : (max-b)+a)
 #endif // WRAPPEDDIFF
 
+#if !defined(MAX)
+#define MAX(x, y) ((x<y)?y:x)
+#endif // MAX
+
 static const uint8_t crc7Table[256] = {
 	0x00, 0x12, 0x24, 0x36, 0x48, 0x5a, 0x6c, 0x7e,
 	0x90, 0x82, 0xb4, 0xa6, 0xd8, 0xca, 0xfc, 0xee,
@@ -79,10 +83,6 @@ Receiver* MProtocol::createReceiver() {
     return receiver_;
 }
 
-Configurator* MProtocol::createConfigurator() {
-    return nullptr;
-}
-
 bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 	bool res;
 	MConfigPacket::ConfigReplyType reply = packet.payload.config.reply;
@@ -111,7 +111,7 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 			Serial.printf("This is a Reply packet! Discarding.\n");
 			return false;
 		}
-		res = incomingConfigPacket(addr, packet.source, packet.seqnum, packet.payload.config);
+		res = incomingConfigPacket(addr, packet.source, packet.seqnum, packet2.payload.config);
 		if(res == true) {
 			Serial.printf("Sending reply with OK flag set\n");
 			packet2.payload.config.reply = MConfigPacket::CONFIG_REPLY_OK;
@@ -136,16 +136,53 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
     return true;
 }
 
-bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MConfigPacket& packet) {
-	(void)addr;
-	(void)source;
-	(void)packet;
-	Serial.printf("Incoming config packet default impl\n");
-	return true;
+bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, MConfigPacket& packet) {
+	if(!isPairedAsConfigurator(addr)) {
+		Serial.printf("Not accepting config packets from %s because it's not a configurator\n", addr.toString().c_str());
+		return false;
+	}
+
+	if(packet.type == packet.CONFIG_GET_NUM_INPUTS) {
+		if(receiver_ == nullptr) return false;
+		Serial.printf("Got request for num inputs, replying with %d\n", receiver_->numInputs());
+		packet.cfgPayload.count.count = receiver_->numInputs();
+		return true;
+	}
+
+	if(packet.type == packet.CONFIG_GET_INPUT) {
+		if(receiver_ == nullptr) return false;
+		if(receiver_->numInputs() <= packet.cfgPayload.name.index) return false;
+		const std::string& name = receiver_->inputName(packet.cfgPayload.name.index);
+		memset(packet.cfgPayload.name.name, 0, sizeof(packet.cfgPayload.name.name));
+		memcpy(packet.cfgPayload.name.name, name.c_str(), MAX(sizeof(packet.cfgPayload.name.name), NAME_MAXLEN));
+		Serial.printf("Got request for input #%d, replying with \"%s\"\n", packet.cfgPayload.name.index, name.c_str());
+		return true;
+	}
+
+	if(packet.type == packet.CONFIG_GET_MIX) {
+		if(receiver_ == nullptr) return false;
+		if(receiver_->numInputs() <= packet.cfgPayload.mix.input) return false;
+		axisMixToMixPacket(packet.cfgPayload.mix.input, receiver_->mixForInput(packet.cfgPayload.mix.input), packet.cfgPayload.mix);
+		Serial.printf("Got request for mix #%d, replying with mix", packet.cfgPayload.mix.input);
+		return true;
+	}
+
+	if(packet.type == packet.CONFIG_SET_MIX) {
+		if(receiver_ == nullptr) return false;
+		if(receiver_->numInputs() <= packet.cfgPayload.mix.input) return false;
+		AxisMix mix;
+		InputID input;
+		mixPacketToAxisMix(packet.cfgPayload.mix, input, mix);
+		receiver_->setMix(input, mix);
+		Serial.printf("Got request to set mix for #%d", input);
+		return true;
+	}
+
+	return false;
 }
 
 bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MPairingPacket& packet) {
-	if(packet.type == packet.PAIRING_DISCOVERY_BROADCAST) {
+	if(packet.type == MPairingPacket::PAIRING_DISCOVERY_BROADCAST) {
 		if(!acceptsPairingRequests()) {
 			return false;
 		}
@@ -173,7 +210,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		return true;
 	}
 
-	if(packet.type == packet.PAIRING_DISCOVERY_REPLY) {
+	if(packet.type == MPairingPacket::PAIRING_DISCOVERY_REPLY) {
 		for(auto& n: discoveredNodes_) {
 			if(n.addr == addr) {
 				return true;
@@ -197,7 +234,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		return true;
 	}
 
-	if(packet.type == packet.PAIRING_REQUEST) {
+	if(packet.type == MPairingPacket::PAIRING_REQUEST) {
 		if(!acceptsPairingRequests()) {
 			Serial.printf("Received pairing request but not in pairing mode. Ignoring.\n");
 			return false;
@@ -229,25 +266,26 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		// Already have this node? ==> error
 		for(auto& n: pairedNodes_) {
 			if(n.addr == addr) {
+				Serial.printf("Already paired to %s.\n", addr.toString().c_str());
 				reply.payload.pairing.pairingPayload.reply.res = MPairingPacket::PAIRING_REPLY_ALREADY_PAIRED;
 				sendPacket(addr, reply);
 				return true;
 			}
 		}
 
-		// Do we know this node from the discovery? Add it and reply OK
-		for(auto& n: discoveredNodes_) {
-			if(n.addr == addr) {
-				pairedNodes_.push_back(n);
-				reply.payload.pairing.pairingPayload.reply.res = MPairingPacket::PAIRING_REPLY_OK;
-				sendPacket(addr, reply);
-				return true;
-			}
-		}
-
-		// Don't know this node from the discovery? ==> error
-		reply.payload.pairing.pairingPayload.reply.res = MPairingPacket::PAIRING_REPLY_UNKNOWN_NODE;
+		NodeDescription descr;
+		descr.addr = addr;
+		descr.isConfigurator = packet.pairingPayload.request.pairAsConfigurator;
+		descr.isReceiver = packet.pairingPayload.request.pairAsReceiver;
+		descr.isTransmitter = packet.pairingPayload.request.pairAsTransmitter;
+		Serial.printf("Adding %s as configurator: %s receiver: %s transmitter: %s\n", addr.toString().c_str(), 
+					packet.pairingPayload.request.pairAsConfigurator ? "yes" : "no", 
+					packet.pairingPayload.request.pairAsReceiver ? "yes" : "no", 
+					packet.pairingPayload.request.pairAsTransmitter ? "yes" : "no");
+		pairedNodes_.push_back(descr);
+		reply.payload.pairing.pairingPayload.reply.res = MPairingPacket::PAIRING_REPLY_OK;
 		sendPacket(addr, reply);
+		return true;
 	}
 
 	Serial.printf("Unknown pairing packet type %d\n", packet.type);
@@ -343,10 +381,50 @@ bool MProtocol::pairWith(const NodeDescription& descr) {
 	return false;
 }
 
+bool MProtocol::retrieveInputs(const NodeDescription& descr) {
+	MPacket packet;
+	packet.source = source_;
+	packet.type = MPacket::PACKET_TYPE_CONFIG;
+	MConfigPacket& c = packet.payload.config;
+	c.type = MConfigPacket::CONFIG_GET_NUM_INPUTS;
+	c.reply = MConfigPacket::CONFIG_TRANSMIT_REPLY;
+	c.cfgPayload.count.count = 0;
+
+	sendPacket(descr.addr, packet);
+
+	MPacket replyPacket;
+	NodeAddr replyAddr;
+	NodeAddr addr = descr.addr;
+	std::function<bool(const MPacket&, const NodeAddr&)> fn = [addr](const MPacket& p, const NodeAddr& a) {
+			return a == addr && p.type == p.PACKET_TYPE_CONFIG && p.payload.config.type == MConfigPacket::CONFIG_GET_NUM_INPUTS;
+	};
+	if(waitForPacket(fn, replyAddr, replyPacket, true, 0.5) == false) {
+		Serial.printf("Timed out waiting for num inputs reply.\n");
+		return false;
+	}
+
+	Serial.printf("Received num inputs reply -- %d inputs\n", replyPacket.payload.config.cfgPayload.count.count);
+
+	return false;
+}
+
+bool MProtocol::retrieveMixes(const NodeDescription& descr) {
+	Serial.printf("Mix retrieval not implemented\n");
+	return false;
+}
+
+
 bool MProtocol::step() {
     return Protocol::step();
 }
 
 void MProtocol::bumpSeqnum() {
 	seqnum_ = (seqnum_ + 1) % MAX_SEQUENCE_NUMBER;
+}
+
+bool MProtocol::isPairedAsConfigurator(const NodeAddr& addr) {
+	for(auto& d: pairedNodes_) {
+		if(d.addr == addr && d.isConfigurator == true) return true;
+	}
+	return false;
 }

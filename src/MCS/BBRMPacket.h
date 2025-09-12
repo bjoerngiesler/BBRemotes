@@ -250,12 +250,10 @@ struct __attribute__ ((packed)) MConfigPacket {
 	static const uint64_t MAGIC = 0xbadeaffebabeface;
 
 	enum ConfigType {
-		CONFIG_SET_REMOTE_PARAMS        = 2,  // L->R - parameter: remoteConfig
-		CONFIG_CALIBRATE                = 3,  // L->R - parameter: magic
-		CONFIG_SET_DRIVE_CONTROL_MODE   = 4,  // L->D - parameter: control mode
-		CONFIG_SET_DOME_CONTROL_MODE    = 5,  // L->D - parameter: control mode
-		CONFIG_SET_ARMS_CONTROL_MODE    = 6,  // L->D - parameter: control mode
-		CONFIG_SET_SOUND_CONTROL_MODE   = 7,  // L->D - parameter: control mode
+		CONFIG_GET_NUM_INPUTS           = 4, // CountPacket receiver <-- sender
+		CONFIG_GET_INPUT                = 5, // NamePacket receiver <-- sender
+		CONFIG_GET_MIX                  = 6, // MixPacket receiver <-- sender 
+		CONFIG_SET_MIX                  = 7, // MixPacket sender --> receiver
 		CONFIG_FACTORY_RESET            = 63  // L->R - parameter: MAGIC
 	};
 
@@ -266,26 +264,58 @@ struct __attribute__ ((packed)) MConfigPacket {
 		CONFIG_REPLY_ERROR            = 3  // Something went wrong
 	};
 
-	struct __attribute__((packed)) RemoteConfigPacket {
-		uint8_t lIncrRotBtn      : 4;
-		uint8_t rIncrRotBtn      : 4;
-		uint8_t lIncrTransBtn    : 4;
-		uint8_t rIncrTransBtn    : 4;
-		bool leftIsPrimary       : 1;
-		uint8_t ledBrightness    : 3;
-		uint8_t sendRepeats      : 3;
-		uint8_t reserved         : 1;
-		uint8_t deadbandPercent  : 4;
+	struct __attribute__ ((packed)) CountPacket {
+		uint8_t count;
+	};
+
+	struct __attribute__ ((packed)) NamePacket {
+		uint8_t index;
+		char name[NAME_MAXLEN];
+	};
+
+	struct __attribute__ ((packed)) MixPacket {
+		uint8_t input;
+		int8_t i1_0, i1_25, i1_50, i1_75, i1_100;
+		int8_t i2_0, i2_25, i2_50, i2_75, i2_100;
+		AxisID a1 : 7;
+		AxisID a2 : 7;
+		MixType m : 2;
 	};
 
 	ConfigType      type  : 6;
 	ConfigReplyType reply : 2;
 	union {
-		NodeAddr address;
-		uint64_t magic;
-		RemoteConfigPacket remoteConfig;
+		CountPacket count;
+		NamePacket name;
+		MixPacket mix;
 	} cfgPayload;
 };
+
+static void axisMixToMixPacket(InputID input, const AxisMix& mix, MConfigPacket::MixPacket& mp) {
+	mp.input = input;
+	mp.i1_0 = mix.interp1.i0;
+	mp.i1_25 = mix.interp1.i25;
+	mp.i1_50 = mix.interp1.i50;
+	mp.i1_75 = mix.interp1.i75;
+	mp.i1_100 = mix.interp1.i100;
+	mp.i2_0 = mix.interp2.i0;
+	mp.i2_25 = mix.interp2.i25;
+	mp.i2_50 = mix.interp2.i50;
+	mp.i2_75 = mix.interp2.i75;
+	mp.i2_100 = mix.interp2.i100;
+	mp.a1 = mix.axis1;
+	mp.a2 = mix.axis2;
+	mp.m = mix.mixType;
+}
+
+static void mixPacketToAxisMix(const MConfigPacket::MixPacket& mp, InputID& input, AxisMix& mix) {
+	input = mp.input;
+	mix.interp1 = {mp.i1_0, mp.i1_25, mp.i1_50, mp.i1_75, mp.i1_100};
+	mix.interp2 = {mp.i2_0, mp.i2_25, mp.i2_50, mp.i2_75, mp.i2_100};
+	mix.axis1 = mp.a1;
+	mix.axis2 = mp.a2;
+	mix.mixType = mp.m;
+}
 
 struct __attribute__ ((packed)) MPacket {
 

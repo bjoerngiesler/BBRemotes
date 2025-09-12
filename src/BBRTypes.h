@@ -9,6 +9,11 @@ namespace bb {
 namespace rmt {
 
 static const uint8_t NAME_MAXLEN = 10;
+typedef uint8_t InputID;
+typedef uint8_t AxisID;
+static const InputID INPUT_INVALID = 255;
+static const AxisID AXIS_INVALID = 127;
+
 
 enum Unit {
     UNIT_DEGREES          = 0, // [0..360)
@@ -78,6 +83,13 @@ struct __attribute__ ((packed)) NodeAddr {
     }
 };
 
+static bool operator<(const NodeAddr& a1, const NodeAddr& a2) {
+    for(uint8_t i = 0; i<8; i++) {
+        if(a1.byte[i] < a2.byte[i]) return true;
+    }
+    return false;
+}
+
 // NodeDescription - 20 bytes
 struct __attribute__ ((packed)) NodeDescription {
     NodeAddr addr;               // byte 0..7
@@ -145,9 +157,6 @@ enum MixType {
     MIX_MULT = 2, // input = map(p1*a1*a2)
 };
 
-static const uint8_t INPUT_INVALID = 255;
-static const uint8_t AXIS_INVALID = 127;
-
 struct __attribute__ ((packed)) Interpolator {
     int8_t i0, i25, i50, i75, i100;
 };
@@ -166,11 +175,11 @@ static constexpr Interpolator INTERP_LIN_CENTERED_INV = {100, 50, 0, -50, -100};
 // 3. reduce number of possible inputs and axes - could maybe save 2 bits here? not enough.
 struct __attribute__ ((packed)) AxisMix {
 public:
-    Interpolator interp1 = INTERP_LIN_POSITIVE;  // byte 0..4
-    Interpolator interp2 = INTERP_LIN_POSITIVE;  // byte 5..9
-    uint8_t axis1   : 7;                         // byte 10 bit 0..6
-    uint8_t axis2   : 7;                         // byte 10 bit 7 to byte 11 bit 0..5
-    MixType mixType : 2;                         // byte 11 bit 6..7
+    Interpolator interp1 = INTERP_ZERO;  // byte 0..4
+    Interpolator interp2 = INTERP_ZERO;  // byte 5..9
+    AxisID axis1    : 7;                 // byte 10 bit 0..6
+    AxisID axis2    : 7;                 // byte 10 bit 7 to byte 11 bit 0..5
+    MixType mixType : 2;                 // byte 11 bit 6..7
 
     AxisMix() { 
         interp1 = INTERP_ZERO;
@@ -180,13 +189,15 @@ public:
         mixType = MIX_NONE;
     }
 
-    AxisMix(uint8_t ax1, Interpolator ip1 = INTERP_LIN_CENTERED, 
-                     uint8_t ax2=AXIS_INVALID, Interpolator ip2 = INTERP_ZERO,
-                     MixType mix=MIX_NONE) { 
+    AxisMix(AxisID ax1, Interpolator ip1 = INTERP_LIN_CENTERED, 
+            AxisID ax2=AXIS_INVALID, Interpolator ip2 = INTERP_ZERO, 
+            MixType mix=MIX_NONE) { 
         axis1 = ax1; interp1 = ip1;
         axis2 = ax2; interp2 = ip2;
         mixType = mix;
     }
+
+    bool isValid() { return axis1 != AXIS_INVALID && axis2 != AXIS_INVALID && mixType != MIX_NONE; }
 
     float compute(float a1, float min1, float max1, float a2, float min2, float max2) const {
         float i0=0, i1=0, frac=0, b1=0, b2=0;

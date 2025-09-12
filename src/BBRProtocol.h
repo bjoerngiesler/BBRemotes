@@ -7,7 +7,7 @@
 
 #include "BBRTransmitter.h"
 #include "BBRReceiver.h"
-#include "BBRConfigurator.h"
+#include "BBRMixManager.h"
 
 namespace bb {
 namespace rmt {
@@ -24,7 +24,6 @@ public:
     virtual uint8_t numTransmitterTypes() = 0;
     virtual Transmitter* createTransmitter(uint8_t transmitterType=0);
     virtual Receiver* createReceiver();
-    virtual Configurator* createConfigurator();
 
     virtual bool discoverNodes(float timeout = 5) = 0;
     virtual unsigned int numDiscoveredNodes();
@@ -43,6 +42,21 @@ public:
     virtual bool step();
 
     const std::vector<NodeDescription>& pairedNodes() { return pairedNodes_; }
+
+    virtual bool receiverSideMixing() { return false; }
+    virtual bool retrieveInputs(const NodeDescription& descr) { return false; }
+    virtual bool retrieveInputs();
+    virtual bool retrieveMixes(const NodeDescription& descr) { return false; }
+    virtual bool retrieveMixes();
+    virtual bool sendMixes(const NodeDescription& descr) { return false; }
+    virtual bool sendMixes();
+
+    const MixManager& mixManager(const NodeAddr& addr);
+    const MixManager& mixManager();
+
+    virtual uint8_t numInputs(const NodeAddr& addr);
+    virtual const std::string& inputName(const NodeAddr& addr, uint8_t input);
+    virtual uint8_t inputWithName(const NodeAddr& addr, const std::string& name);
     
 protected:
     virtual bool connect(const NodeAddr& addr) { return false; }
@@ -53,6 +67,9 @@ protected:
     Receiver* receiver_ = nullptr;
     Configurator* configurator_ = nullptr;
     std::string nodeName_;
+
+    std::map<NodeAddr,std::vector<std::string>> inputs_;
+    std::map<NodeAddr,MixManager> mixManagers_;
 };
 
 };

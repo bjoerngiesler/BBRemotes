@@ -3,6 +3,8 @@
 using namespace bb;
 using namespace rmt;
 
+static const std::string EMPTY("");
+
 bool Protocol::init(const std::string& nodeName) {
     nodeName_ = nodeName;
     Serial.printf("Initialized %s\n", nodeName_.c_str());
@@ -14,10 +16,6 @@ Transmitter* Protocol::createTransmitter(uint8_t transmitterType) {
 }
 
 Receiver* Protocol::createReceiver() { 
-    return nullptr; 
-}
-
-Configurator* Protocol::createConfigurator() { 
     return nullptr; 
 }
 
@@ -55,4 +53,68 @@ bool Protocol::step() {
         if(transmitter_->transmit() == false) retval = false;
     }
     return retval;
+}
+
+uint8_t Protocol::numInputs(const NodeAddr& addr) {
+    for(auto& pair: inputs_) {
+        if(addr == pair.first) {
+            return pair.second.size();
+        }
+    }
+    return 0;
+}
+
+const std::string& Protocol::inputName(const NodeAddr& addr, uint8_t input) {
+    for(auto& pair: inputs_) {
+        if(addr == pair.first) {
+            if(input < pair.second.size()) return pair.second[input];
+            return EMPTY;
+        }
+    }
+    return EMPTY;
+}
+
+uint8_t Protocol::inputWithName(const NodeAddr& addr, const std::string& name) {
+    for(auto& pair: inputs_) {
+        if(addr == pair.first) {
+            for(int i=0; i<pair.second.size(); i++) {
+                if(pair.second[i] == name) return i;
+            }
+            return INPUT_INVALID;
+        }
+    }
+    return INPUT_INVALID;
+}
+
+const MixManager& Protocol::mixManager(const NodeAddr& addr) {
+    for(auto& pair: mixManagers_) {
+        if(pair.first == addr) return pair.second;
+    }
+    return MixManager::InvalidManager;
+}
+
+const MixManager& Protocol::mixManager() {
+    if(pairedNodes_.size() != 1)  return MixManager::InvalidManager;
+    return mixManager(pairedNodes_[0].addr);
+}
+
+bool Protocol::retrieveInputs() {
+    for(auto& d: pairedNodes_) {
+        if(d.isReceiver) retrieveInputs(d);
+    }
+    return true;
+}
+
+bool Protocol::retrieveMixes() {
+    for(auto& d: pairedNodes_) {
+        if(d.isReceiver) retrieveMixes(d);
+    }
+    return true;
+}
+
+bool Protocol::sendMixes() {
+    for(auto& d: pairedNodes_) {
+        if(d.isReceiver) sendMixes(d);
+    }
+    return true;
 }
