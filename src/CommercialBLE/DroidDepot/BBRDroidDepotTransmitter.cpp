@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#if !CONFIG_IDF_TARGET_ESP32S2
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
 
 #include "BBRDroidDepotTransmitter.h"
 #include <string>

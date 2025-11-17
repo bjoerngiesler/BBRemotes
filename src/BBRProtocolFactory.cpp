@@ -2,6 +2,7 @@
 #include "CommercialBLE/DroidDepot/BBRDroidDepotProtocol.h"
 #include "CommercialBLE/Sphero/BBRSpheroProtocol.h"
 #include "MCS/ESP/BBRMESPProtocol.h"
+#include "MCS/XBee/BBRMXBProtocol.h"
 
 using namespace bb;
 using namespace rmt;
@@ -9,37 +10,41 @@ using namespace rmt;
 Protocol* ProtocolFactory::createProtocol(ProtocolType type) {
     switch(type) {
     case MONACO_XBEE:
-        Serial.printf("Error creating Protocol: MONACO_XBEE not yet implemented\n");
-        return nullptr;
+        return new MXBProtocol;
         break;
     
     case MONACO_ESPNOW:
+#if ARDUINO_ARCH_SAMD
+        printf("Error creating Protocol: Target does not support ESPNow\n");
+        return nullptr;
+#else
         return new MESPProtocol;
         break;
+#endif
 
     case MONACO_UDP:
-        Serial.printf("Error creating Protocol: MONACO_UDP not yet implemented\n");
+        printf("Error creating Protocol: MONACO_UDP not yet implemented\n");
         return nullptr;
         break;
 
     case MONACO_BLE:
-#if CONFIG_IDF_TARGET_ESP32S2
-        Serial.printf("Error creating Protocol: ESP32S2 target does not support BLE\n");
+#if CONFIG_IDF_TARGET_ESP32S2 || ARDUINO_ARCH_SAMD
+        printf("Error creating Protocol: Target does not support BLE\n");
         return nullptr;
 #else
-        Serial.printf("Error creating Protocol: MONACO_UDP not yet implemented\n");
+        printf("Error creating Protocol: MONACO_UDP not yet implemented\n");
         return nullptr;
 #endif
         break;
         
     case SPEKTRUM_DSSS:
-        Serial.printf("Error creating Protocol: SPEKTRUM_DSSS protocol not yet implemented\n");
+        printf("Error creating Protocol: SPEKTRUM_DSSS protocol not yet implemented\n");
         return nullptr;
         break;
 
     case SPHERO_BLE:
-#if CONFIG_IDF_TARGET_ESP32S2
-        Serial.printf("Error creating Protocol: ESP32S2 target does not support BLE\n");
+#if CONFIG_IDF_TARGET_ESP32S2 || ARDUINO_ARCH_SAMD
+        printf("Error creating Protocol: Target does not support BLE\n");
         return nullptr;
 #else
         return new SpheroProtocol;
@@ -47,8 +52,8 @@ Protocol* ProtocolFactory::createProtocol(ProtocolType type) {
         break;
 
     case DROIDDEPOT_BLE:
-#if CONFIG_IDF_TARGET_ESP32S2
-        Serial.printf("Error creating Protocol: ESP32S2 target does not support BLE\n");
+#if CONFIG_IDF_TARGET_ESP32S2 || ARDUINO_ARCH_SAMD
+        printf("Error creating Protocol: Target does not support BLE\n");
         return nullptr;
 #else
         return new DroidDepotProtocol;
@@ -56,7 +61,7 @@ Protocol* ProtocolFactory::createProtocol(ProtocolType type) {
         break;
 
     default:
-        Serial.printf("Error creating Protocol: Unknown protocol %d\n", type);
+        printf("Error creating Protocol: Unknown protocol %d\n", type);
     }
 
     return nullptr;

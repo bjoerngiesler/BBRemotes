@@ -38,7 +38,7 @@ struct __attribute__ ((packed)) MPairingPacket {
 		PAIRING_REPLY_OTHER_ERROR      = 5
 	};
 
-	PairingType      type;          // byte 0
+	PairingType      type : 8;          // byte 0
 
 	struct __attribute__ ((packed)) PairingDiscovery {
 		uint8_t      builderId;     // byte 1
@@ -58,7 +58,7 @@ struct __attribute__ ((packed)) MPairingPacket {
 	};
 
 	struct __attribute__ ((packed)) PairingReply {
-		PairingReplyResult res;
+		PairingReplyResult res: 8;
 	};
 
 	union {
@@ -208,7 +208,7 @@ struct __attribute__ ((packed)) MControlPacket {
 		return value;
 	}
 
-	void print() const { for(int i=0; i<19; i++) Serial.printf("%d:%.1f ", i, getAxis(i, UNIT_RAW)); Serial.printf("\n"); }
+	void print() const { for(int i=0; i<19; i++) printf("%d:%.1f ", i, getAxis(i, UNIT_RAW)); printf("\n"); }
 };     // 13 bytes long
 
 struct __attribute__ ((packed)) MStatePacket {

@@ -1,21 +1,12 @@
 #if !defined(BBRFACTORY_H)
 #define BBRFACTORY_H
 
+#include "BBRProtocolType.h"
 #include "BBRProtocol.h"
 #include <string>
 
 namespace bb {
 namespace rmt {
-
-enum ProtocolType {
-    MONACO_XBEE    = 0,
-    MONACO_ESPNOW  = 1,
-    MONACO_BLE     = 2,
-    MONACO_UDP     = 3,
-    SPHERO_BLE     = 4,
-    DROIDDEPOT_BLE = 5,
-    SPEKTRUM_DSSS  = 6
-};
 
 /*
     Storage -- some thoughts on memory. 
@@ -69,6 +60,7 @@ struct __attribute__ ((packed)) StorageBlock {
     InputMixMapping mapping[MAX_NUM_MAPPINGS];  // 13 bytes each = 3302 bytes
     uint8_t protocolSpecific[100];              // 100 bytes
 };
+
 
 class ProtocolFactory {
 public:

@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#if !CONFIG_IDF_TARGET_ESP32S2
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
 
 #include <BLEAdvertisedDevice.h>
 #include "../BBRBLEProtocol.h"
@@ -13,6 +13,9 @@ namespace rmt {
 class SpheroProtocol: public BLEProtocol {
 public:
     SpheroProtocol();
+
+    virtual char identifier() { return 'S'; }
+
     virtual uint8_t numTransmitterTypes();
     virtual Transmitter* createTransmitter(uint8_t transmitterType=0);
     virtual Receiver* createReceiver() { return nullptr; }

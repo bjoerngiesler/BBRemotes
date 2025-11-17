@@ -16,8 +16,8 @@ using namespace bb::rmt;
 
 // Uncomment the protocol you want to use
 ProtocolType type = 
-  // MONACO_XBEE;
-  MONACO_ESPNOW;
+  MONACO_XBEE;
+  // MONACO_ESPNOW;
   // MONACO_BLE;
   // MONACO_UDP;
   // SPHERO_BLE;
@@ -69,6 +69,8 @@ bool pair() {
 
 void setup() {
   Serial.begin(115200);
+  while(!Serial);
+  delay(3000);
   Serial.printf("MCS Transmitter example\n");
   Serial.printf("Transmission protocol used: %s\n", XSTR(PROTOCOL));
 
@@ -80,6 +82,8 @@ void setup() {
   }
   joyCalibHor /= 100.0f;
   joyCalibVer /= 100.0f;
+
+  Serial1.setPins(D7, D6);
 
   protocol = ProtocolFactory::createProtocol(type);
   if(protocol == nullptr) {
@@ -93,27 +97,47 @@ void setup() {
     while(true);
   }
 
+  Serial.print("Sizes:\n");
+  Serial.print("Control packet:"); Serial.println(sizeof(MControlPacket));
+  Serial.print("State packet:"); Serial.println(sizeof(MStatePacket));
+  Serial.print("Config packet:"); Serial.println(sizeof(MConfigPacket));
+  Serial.print("Pairing packet:"); Serial.println(sizeof(MPairingPacket));
+  Serial.print("Pairing Discovery:"); Serial.println(sizeof(MPairingPacket::PairingDiscovery));
+  Serial.print("Pairing Request:"); Serial.println(sizeof(MPairingPacket::PairingRequest));
+  Serial.print("Pairing Reply:"); Serial.println(sizeof(MPairingPacket::PairingReplyResult));
+  Serial.print("MPacket:"); Serial.println(sizeof(MPacket));
+
   while(true) {
+    Serial.println("Pairing");
     if(!protocol->isPaired()) pair();
+    Serial.println("Connecting");
     if(!protocol->isConnected()) protocol->connect();
-    if(protocol->isPaired() && protocol->isConnected()) break;
+    if(protocol->isPaired() && protocol->isConnected()) {
+      Serial.println("Done");
+      break;
+    }
 
     protocol->step();
 
     delay(1000);
   }
 
+  Serial.println("Retrieving inputs");
   protocol->retrieveInputs();
-
+  
+  Serial.println("Set axis names");
   tx->setAxisName(JOY_HOR_AXIS, "JoyHor");
   tx->setAxisName(JOY_VER_AXIS, "JoyVer");
+  Serial.println("Done");
 }
 
 void loop() {
   float joyVer = analogRead(JOY_VER_PIN) / 4096.0f - joyCalibVer;
   float joyHor = analogRead(JOY_HOR_PIN) / 4096.0f - joyCalibHor;
+  //Serial.println("Set axis values");
   tx->setAxisValue(JOY_VER_AXIS, joyVer, UNIT_UNITY);
   tx->setAxisValue(JOY_HOR_AXIS, joyHor, UNIT_UNITY);
+  //Serial.println("Transmitting");
   protocol->step();
   delay(10);
 }

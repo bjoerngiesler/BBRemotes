@@ -2,6 +2,8 @@
 #include "BBRMReceiver.h"
 #include "BBRMTransmitter.h"
 
+#include <limits.h> // for ULONG_MAX
+
 using namespace bb;
 using namespace bb::rmt;
 
@@ -65,10 +67,6 @@ MProtocol::MProtocol() {
     seqnum_ = 0;
 }
 
-bool MProtocol::init(const std::string& nodeName) {
-    return Protocol::init(nodeName);
-}
-
 Transmitter* MProtocol::createTransmitter(uint8_t transmitterType) {
     if(transmitter_ == nullptr) {
         transmitter_ = new MTransmitter(this);
@@ -91,7 +89,7 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 	switch(packet.type) {
 	case MPacket::PACKET_TYPE_CONTROL:
 		if(receiver_ == nullptr) {
-			Serial.printf("Got control packet from %s but we are not a receiver.\n", addr.toString().c_str());
+			printf("Got control packet from %s but we are not a receiver.\n", addr.toString().c_str());
 			return false;
 		}
 		return ((MReceiver*)receiver_)->incomingControlPacket(addr, packet.source, packet.seqnum, packet.payload.control);
@@ -99,25 +97,25 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 
 	case MPacket::PACKET_TYPE_STATE:
 		if(receiver_ == nullptr) {
-			Serial.printf("Got state packet from %s but we are not a receiver.\n", addr.toString().c_str());
+			printf("Got state packet from %s but we are not a receiver.\n", addr.toString().c_str());
 			return false;
 		}
 		return ((MReceiver*)receiver_)->incomingStatePacket(addr, packet.source, packet.seqnum, packet.payload.state);
 		break;
 
 	case MPacket::PACKET_TYPE_CONFIG:
-		Serial.printf("Config packet from %s\n", addr.toString().c_str());
+		printf("Config packet from %s\n", addr.toString().c_str());
 		if(reply == MConfigPacket::CONFIG_REPLY_ERROR || reply == MConfigPacket::CONFIG_REPLY_OK) {
-			Serial.printf("This is a Reply packet! Discarding.\n");
+			printf("This is a Reply packet! Discarding.\n");
 			return false;
 		}
 		res = incomingConfigPacket(addr, packet.source, packet.seqnum, packet2.payload.config);
 		if(res == true) {
-			Serial.printf("Sending reply with OK flag set\n");
+			printf("Sending reply with OK flag set\n");
 			packet2.payload.config.reply = MConfigPacket::CONFIG_REPLY_OK;
 		}
 		else {
-			Serial.printf("Sending reply with ERROR flag set\n");
+			printf("Sending reply with ERROR flag set\n");
 			packet2.payload.config.reply = MConfigPacket::CONFIG_REPLY_ERROR;
 		}
 
@@ -129,7 +127,7 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 		break;
 
 	default:
-		Serial.printf("Error: Unknown packet type %d\n", packet.type);
+		printf("Error: Unknown packet type %d\n", packet.type);
 		return false;
 	}
 
@@ -138,13 +136,13 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 
 bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, MConfigPacket& packet) {
 	if(!isPairedAsConfigurator(addr)) {
-		Serial.printf("Not accepting config packets from %s because it's not a configurator\n", addr.toString().c_str());
+		printf("Not accepting config packets from %s because it's not a configurator\n", addr.toString().c_str());
 		return false;
 	}
 
 	if(packet.type == packet.CONFIG_GET_NUM_INPUTS) {
 		if(receiver_ == nullptr) return false;
-		Serial.printf("Got request for num inputs, replying with %d\n", receiver_->numInputs());
+		printf("Got request for num inputs, replying with %d\n", receiver_->numInputs());
 		packet.cfgPayload.count.count = receiver_->numInputs();
 		return true;
 	}
@@ -155,7 +153,7 @@ bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource
 		const std::string& name = receiver_->inputName(packet.cfgPayload.name.index);
 		memset(packet.cfgPayload.name.name, 0, sizeof(packet.cfgPayload.name.name));
 		memcpy(packet.cfgPayload.name.name, name.c_str(), MAX(sizeof(packet.cfgPayload.name.name), NAME_MAXLEN));
-		Serial.printf("Got request for input #%d, replying with \"%s\"\n", packet.cfgPayload.name.index, name.c_str());
+		printf("Got request for input #%d, replying with \"%s\"\n", packet.cfgPayload.name.index, name.c_str());
 		return true;
 	}
 
@@ -163,7 +161,7 @@ bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource
 		if(receiver_ == nullptr) return false;
 		if(receiver_->numInputs() <= packet.cfgPayload.mix.input) return false;
 		axisMixToMixPacket(packet.cfgPayload.mix.input, receiver_->mixForInput(packet.cfgPayload.mix.input), packet.cfgPayload.mix);
-		Serial.printf("Got request for mix #%d, replying with mix", packet.cfgPayload.mix.input);
+		printf("Got request for mix #%d, replying with mix", packet.cfgPayload.mix.input);
 		return true;
 	}
 
@@ -174,7 +172,7 @@ bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource
 		InputID input;
 		mixPacketToAxisMix(packet.cfgPayload.mix, input, mix);
 		receiver_->setMix(input, mix);
-		Serial.printf("Got request to set mix for #%d", input);
+		printf("Got request to set mix for #%d", input);
 		return true;
 	}
 
@@ -189,7 +187,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 
 		// FIXME filter for builder ID
 
-		Serial.printf("Replying to %s (\"%s\") with broadcast pairing packet\n", 
+		printf("Replying to %s (\"%s\") with broadcast pairing packet\n", 
 			          addr.toString().c_str(), packet.pairingPayload.discovery.name);
 		MPacket reply;
 		reply.source = source_;
@@ -225,7 +223,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		descr.setName(packet.pairingPayload.discovery.name);
 
 		if(!descr.isConfigurator && !descr.isTransmitter && !descr.isReceiver) {
-			Serial.printf("Node \"%s\" at %s is neither configurator nor receiver nor transmitter. Ignoring.\n",
+			printf("Node \"%s\" at %s is neither configurator nor receiver nor transmitter. Ignoring.\n",
 			              descr.getName().c_str(), addr.toString().c_str());
 			return false;
 		}
@@ -236,7 +234,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 
 	if(packet.type == MPairingPacket::PAIRING_REQUEST) {
 		if(!acceptsPairingRequests()) {
-			Serial.printf("Received pairing request but not in pairing mode. Ignoring.\n");
+			printf("Received pairing request but not in pairing mode. Ignoring.\n");
 			return false;
 		}
 
@@ -249,7 +247,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		
 		// Secret invalid? ==> error
 		if(r.pairingSecret != pairingSecret_) {
-			Serial.printf("Invalid secret.\n");
+			printf("Invalid secret.\n");
 			reply.payload.pairing.pairingPayload.reply.res = MPairingPacket::PAIRING_REPLY_INVALID_SECRET;
 			sendPacket(addr, reply);
 			return true;
@@ -257,7 +255,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 
 		// Pairing request nonsensical? ==> error
 		if(!r.pairAsConfigurator && !r.pairAsReceiver && !r.pairAsTransmitter) {
-			Serial.printf("Received pairing request but as neither configurator nor receiver nor transmitter.\n");
+			printf("Received pairing request but as neither configurator nor receiver nor transmitter.\n");
 			reply.payload.pairing.pairingPayload.reply.res = MPairingPacket::PAIRING_REPLY_INVALID_ARGUMENT;
 			sendPacket(addr, reply);
 			return true;
@@ -266,7 +264,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		// Already have this node? ==> error
 		for(auto& n: pairedNodes_) {
 			if(n.addr == addr) {
-				Serial.printf("Already paired to %s.\n", addr.toString().c_str());
+				printf("Already paired to %s.\n", addr.toString().c_str());
 				reply.payload.pairing.pairingPayload.reply.res = MPairingPacket::PAIRING_REPLY_ALREADY_PAIRED;
 				sendPacket(addr, reply);
 				return true;
@@ -278,7 +276,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		descr.isConfigurator = packet.pairingPayload.request.pairAsConfigurator;
 		descr.isReceiver = packet.pairingPayload.request.pairAsReceiver;
 		descr.isTransmitter = packet.pairingPayload.request.pairAsTransmitter;
-		Serial.printf("Adding %s as configurator: %s receiver: %s transmitter: %s\n", addr.toString().c_str(), 
+		printf("Adding %s as configurator: %s receiver: %s transmitter: %s\n", addr.toString().c_str(), 
 					packet.pairingPayload.request.pairAsConfigurator ? "yes" : "no", 
 					packet.pairingPayload.request.pairAsReceiver ? "yes" : "no", 
 					packet.pairingPayload.request.pairAsTransmitter ? "yes" : "no");
@@ -288,7 +286,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		return true;
 	}
 
-	Serial.printf("Unknown pairing packet type %d\n", packet.type);
+	printf("Unknown pairing packet type %d\n", packet.type);
 	return false;
 }
 
@@ -340,6 +338,7 @@ bool MProtocol::pairWith(const NodeDescription& descr) {
 	p.pairingPayload.request.pairAsReceiver = (receiver_ != nullptr);
 	p.pairingPayload.request.pairAsTransmitter = (transmitter_ != nullptr);
 
+	printf("Sending packet of size %d to %s\n", sizeof(packet), descr.addr.toString().c_str());
 	sendPacket(descr.addr, packet);
 
 	MPacket pairingReplyPacket;
@@ -351,33 +350,35 @@ bool MProtocol::pairWith(const NodeDescription& descr) {
 					a == addr; 
 	};
 	if(waitForPacket(fn, pairingReplyAddr, pairingReplyPacket, true, 0.5) == false) {
-		Serial.printf("Timed out waiting for pairing reply.\n");
+		printf("Timed out waiting for pairing reply.\n");
 		return false;
 	}
 
-	//Serial.printf("Received pairing reply.\n");
+	printf("Received pairing reply.\n");
 	const MPairingPacket::PairingReply& r = pairingReplyPacket.payload.pairing.pairingPayload.reply;
 
 	if(r.res == MPairingPacket::PAIRING_REPLY_INVALID_SECRET) {
-		Serial.printf("Pairing reply: Invalid secret.\n");
+		printf("Pairing reply: Invalid secret.\n");
 		return true;
 	} else if(r.res == MPairingPacket::PAIRING_REPLY_OTHER_ERROR) {
-		Serial.printf("Pairing reply: Other error.\n");
+		printf("Pairing reply: Other error.\n");
 		return true;
 	}
 
 	for(auto& n: discoveredNodes_) {
 		if(n.addr == addr) {
 			if(!n.isConfigurator && !n.isReceiver && !n.isTransmitter) {
-				Serial.printf("Huh. This node is neither configurator nor receiver nor transmitter. Ignoring.\n");
+				printf("Huh. This node is neither configurator nor receiver nor transmitter. Ignoring.\n");
 				return false;
 			}
 
+			printf("Pairing with %s (configurator: %d receiver: %d transmitter: %d)\n",
+			n.addr.toString().c_str(), n.isConfigurator, n.isReceiver, n.isTransmitter);
 			return Protocol::pairWith(descr);
 		}
 	}
 
-	Serial.printf("Node sent a pairing reply but is not in our discovery list. Ignoring.\n");
+	printf("Node sent a pairing reply but is not in our discovery list. Ignoring.\n");
 	return false;
 }
 
@@ -390,6 +391,8 @@ bool MProtocol::retrieveInputs(const NodeDescription& descr) {
 	c.reply = MConfigPacket::CONFIG_TRANSMIT_REPLY;
 	c.cfgPayload.count.count = 0;
 
+	printf("MProtocol: Retrieve Inputs in %s\n", descr.addr.toString().c_str());
+
 	sendPacket(descr.addr, packet);
 
 	MPacket replyPacket;
@@ -399,17 +402,17 @@ bool MProtocol::retrieveInputs(const NodeDescription& descr) {
 			return a == addr && p.type == p.PACKET_TYPE_CONFIG && p.payload.config.type == MConfigPacket::CONFIG_GET_NUM_INPUTS;
 	};
 	if(waitForPacket(fn, replyAddr, replyPacket, true, 0.5) == false) {
-		Serial.printf("Timed out waiting for num inputs reply.\n");
+		printf("Timed out waiting for num inputs reply.\n");
 		return false;
 	}
 
-	Serial.printf("Received num inputs reply -- %d inputs\n", replyPacket.payload.config.cfgPayload.count.count);
+	printf("Received num inputs reply -- %d inputs\n", replyPacket.payload.config.cfgPayload.count.count);
 
-	return false;
+	return true;
 }
 
 bool MProtocol::retrieveMixes(const NodeDescription& descr) {
-	Serial.printf("Mix retrieval not implemented\n");
+	printf("Mix retrieval not implemented\n");
 	return false;
 }
 

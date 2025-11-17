@@ -1,6 +1,8 @@
 #if !defined(BBRMESPPROTOCOL_H)
 #define BBRMESPPROTOCOL_H
 
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
+
 #include "../BBRMProtocol.h"
 #include <esp_now.h>
 #include <WiFi.h>
@@ -14,6 +16,9 @@ namespace rmt {
 class MESPProtocol: public MProtocol {
 public:
     MESPProtocol();
+	
+    virtual ProtocolType protocolType() { return MONACO_ESPNOW; }
+
     virtual bool init(const std::string& nodeName);
 
     virtual bool discoverNodes(float timeout = 5);
@@ -62,4 +67,5 @@ protected:
 }; // rmt
 }; // bb
 
+#endif // #if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_MKR_WIFI_1010
 #endif // BBRMESPPROTOCOL_H

@@ -11,9 +11,12 @@
 */
 
 #include <LibBBRemotes.h>
+#include <BBRTypes.h>
+#include <wiring_private.h>
+
 using namespace bb::rmt;
 
-MESPProtocol protocol;
+MXBProtocol protocol;
 Receiver *rx = nullptr;
 
 // These variables hold the values for the inputs the droid defines.
@@ -21,30 +24,59 @@ float speed=0, turn=0;
 // These hold the input IDs.
 uint8_t speedInput, turnInput;
 
+Uart *dfplayerSerial, *serialTXSerial;
+static const uint8_t P_SERIALTX_TX     = 0;
+static const uint8_t P_SERIALTX_RX     = 1;
+
+bool setupBoardComm() {
+  serialTXSerial = new Uart(&sercom3, P_SERIALTX_RX, P_SERIALTX_TX, SERCOM_RX_PAD_1, UART_TX_PAD_0);
+  pinPeripheral(P_SERIALTX_RX, PIO_SERCOM);
+  pinPeripheral(P_SERIALTX_TX, PIO_SERCOM);
+  return true;
+}
+
+void SERCOM3_Handler() {
+  serialTXSerial->IrqHandler();
+}
+
 // Called whenever a data packet was received.
 void dataFinishedCB(const NodeAddr& addr, uint8_t seqnum) {
-  //Serial.printf("Speed: %f Turn: %f Seqnum: %d\n", speed, turn, seqnum);
+  bb::rmt::printf("Speed: %f Turn: %f Seqnum: %d\n", speed, turn, seqnum);
 }
 
 // Called whenever nothing was received for a certain time (default: 0.5s).
 void timeoutCB(const NodeAddr& addr) {
-  Serial.printf("Timeout!\n");
+  bb::rmt::printf("Timeout!\n");
   // Would stop the drive motors here
 }
 
 void setup() {
   Serial.begin(2000000);
-  
-  Serial.printf("MCS Receiver example\n");
+  while(!Serial);
+  delay(3000);
+
+  Serial.print("Hello world\n");
+  bb::rmt::printf("MCS Receiver example\n");
 
   // Initialize the protocol, giving this station a name
+  setupBoardComm();
+  protocol.setUart(serialTXSerial);
   protocol.init("Receiver");
   // Ask the protocol to create a receiver. Some protocols cannot do this and will return nullptr.
   rx = protocol.createReceiver();
   if(rx == nullptr) {
-    Serial.printf("Error: Could not create receiver!\n");
+    bb::rmt::printf("Error: Could not create receiver!\n");
     while(true);
   }
+  Serial.print("Sizes:\n");
+  Serial.print("Control packet:"); Serial.println(sizeof(MControlPacket));
+  Serial.print("State packet:"); Serial.println(sizeof(MStatePacket));
+  Serial.print("Config packet:"); Serial.println(sizeof(MConfigPacket));
+  Serial.print("Pairing packet:"); Serial.println(sizeof(MPairingPacket));
+  Serial.print("Pairing Discovery:"); Serial.println(sizeof(MPairingPacket::PairingDiscovery));
+  Serial.print("Pairing Request:"); Serial.println(sizeof(MPairingPacket::PairingRequest));
+  Serial.print("Pairing Reply:"); Serial.println(sizeof(MPairingPacket::PairingReplyResult));
+  Serial.print("MPacket:"); Serial.println(sizeof(MPacket));
 
   // Tell the receiver about the two inputs our droid knows
   speedInput = rx->addInput(INPUT_SPEED, speed);

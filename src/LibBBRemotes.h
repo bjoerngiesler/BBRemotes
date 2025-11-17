@@ -2,6 +2,7 @@
 #define LIBBBREMOTES_H
 
 #include "MCS/ESP/BBRMESPProtocol.h"
+#include "MCS/XBee/BBRMXBProtocol.h"
 #include "CommercialBLE/DroidDepot/BBRDroidDepotProtocol.h"
 #include "CommercialBLE/Sphero/BBRSpheroProtocol.h"
 

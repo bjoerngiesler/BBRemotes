@@ -8,6 +8,7 @@
 #include "BBRTransmitter.h"
 #include "BBRReceiver.h"
 #include "BBRMixManager.h"
+#include "BBRProtocolType.h"
 
 namespace bb {
 namespace rmt {
@@ -19,7 +20,9 @@ class Configurator;
 // Abstract protocol superclass
 class Protocol {
 public:
-    virtual bool init(const std::string& nodeName);
+    virtual ProtocolType protocolType() { return INVALID_PROTOCOL; }
+
+    virtual bool init(const std::string& nodeName) = 0;
 
     virtual uint8_t numTransmitterTypes() = 0;
     virtual Transmitter* createTransmitter(uint8_t transmitterType=0);

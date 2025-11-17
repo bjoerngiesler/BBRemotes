@@ -5,12 +5,6 @@ using namespace rmt;
 
 static const std::string EMPTY("");
 
-bool Protocol::init(const std::string& nodeName) {
-    nodeName_ = nodeName;
-    Serial.printf("Initialized %s\n", nodeName_.c_str());
-    return true;
-}
-
 Transmitter* Protocol::createTransmitter(uint8_t transmitterType) { 
     return nullptr; 
 }
@@ -42,7 +36,11 @@ bool Protocol::isPaired(const NodeAddr& addr) {
 }
 
 bool Protocol::pairWith(const NodeDescription& node) {
-    if(isPaired(node.addr)) return true; // already paired
+    if(isPaired(node.addr)) {
+        printf("Already paired with %s\n", node.addr.toString().c_str());
+        return true; // already paired
+    }
+    printf("Now paired with %s (c:%d r:%d t:%d)\n", node.addr.toString().c_str(), node.isConfigurator, node.isReceiver, node.isTransmitter);
     pairedNodes_.push_back(node);
     return true;
 }
@@ -77,7 +75,7 @@ const std::string& Protocol::inputName(const NodeAddr& addr, uint8_t input) {
 uint8_t Protocol::inputWithName(const NodeAddr& addr, const std::string& name) {
     for(auto& pair: inputs_) {
         if(addr == pair.first) {
-            for(int i=0; i<pair.second.size(); i++) {
+            for(unsigned int i=0; i<pair.second.size(); i++) {
                 if(pair.second[i] == name) return i;
             }
             return INPUT_INVALID;
@@ -100,6 +98,7 @@ const MixManager& Protocol::mixManager() {
 
 bool Protocol::retrieveInputs() {
     for(auto& d: pairedNodes_) {
+        printf("Protocol: Retrieving inputs in %s\n", d.addr.toString().c_str());
         if(d.isReceiver) retrieveInputs(d);
     }
     return true;

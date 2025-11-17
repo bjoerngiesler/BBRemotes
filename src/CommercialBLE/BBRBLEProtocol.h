@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#if !CONFIG_IDF_TARGET_ESP32S2
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
 
 #include <BLEDevice.h>
 #include <BLEUtils.h>
@@ -19,7 +19,10 @@ class BLEProtocol: public Protocol, public BLEAdvertisedDeviceCallbacks, public 
 public:
     BLEProtocol();
 
-    virtual bool init();
+    virtual ProtocolType protocolType() { return INVALID_PROTOCOL; }
+
+    virtual bool init(const std::string& nodeName);
+
 
     // BLE callbacks
     virtual bool discoverNodes(float timeout = 5);

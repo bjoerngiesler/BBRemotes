@@ -1,4 +1,5 @@
 #include "BBRMReceiver.h"
+#include "BBRTypes.h"
 
 using namespace bb;
 using namespace bb::rmt;
@@ -23,7 +24,7 @@ bool MReceiver::incomingControlPacket(const NodeAddr& addr, MPacket::PacketSourc
 }
 
 bool MReceiver::incomingStatePacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MStatePacket& packet) {
-    Serial.printf("Incoming state packet from %s, source %d, seqnum %d!\n",
-                  addr.toString().c_str(), source, seqnum);
+    printf("Incoming state packet from %s, source %d, seqnum %d!\n",
+           addr.toString().c_str(), source, seqnum);
     return true;
 }

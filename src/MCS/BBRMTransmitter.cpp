@@ -7,25 +7,25 @@ static const std::string EMPTY = "";
 
 MTransmitter::MTransmitter(MProtocol *proto): 
     TransmitterBase<MProtocol>(proto) {
-    axes_.push_back({ "Axis 0", MControlPacket::BITDEPTH1, 1<<(MControlPacket::BITDEPTH1)-1 });
-    axes_.push_back({ "Axis 1", MControlPacket::BITDEPTH1, 1<<(MControlPacket::BITDEPTH1)-1 });
-    axes_.push_back({ "Axis 2", MControlPacket::BITDEPTH1, 1<<(MControlPacket::BITDEPTH1)-1 });
-    axes_.push_back({ "Axis 3", MControlPacket::BITDEPTH1, 1<<(MControlPacket::BITDEPTH1)-1 });
-    axes_.push_back({ "Axis 4", MControlPacket::BITDEPTH1, 1<<(MControlPacket::BITDEPTH1)-1 });
-    axes_.push_back({ "Axis 5", MControlPacket::BITDEPTH2, 1<<(MControlPacket::BITDEPTH2)-1 });
-    axes_.push_back({ "Axis 6", MControlPacket::BITDEPTH2, 1<<(MControlPacket::BITDEPTH2)-1 });
-    axes_.push_back({ "Axis 7", MControlPacket::BITDEPTH2, 1<<(MControlPacket::BITDEPTH2)-1 });
-    axes_.push_back({ "Axis 8", MControlPacket::BITDEPTH2, 1<<(MControlPacket::BITDEPTH2)-1 });
-    axes_.push_back({ "Axis 9", MControlPacket::BITDEPTH2, 1<<(MControlPacket::BITDEPTH2)-1 });
-    axes_.push_back({ "Axis 10", MControlPacket::BITDEPTH3, 1<<(MControlPacket::BITDEPTH3)-1 });
-    axes_.push_back({ "Axis 11", MControlPacket::BITDEPTH3, 1<<(MControlPacket::BITDEPTH3)-1 });
-    axes_.push_back({ "Axis 12", MControlPacket::BITDEPTH3, 1<<(MControlPacket::BITDEPTH3)-1 });
-    axes_.push_back({ "Axis 13", MControlPacket::BITDEPTH3, 1<<(MControlPacket::BITDEPTH3)-1 });
-    axes_.push_back({ "Axis 14", MControlPacket::BITDEPTH3, 1<<(MControlPacket::BITDEPTH3)-1 });
-    axes_.push_back({ "Axis 15", MControlPacket::BITDEPTH3, 1<<(MControlPacket::BITDEPTH3)-1 });
-    axes_.push_back({ "Axis 16", MControlPacket::BITDEPTH3, 1<<(MControlPacket::BITDEPTH3)-1 });
-    axes_.push_back({ "Axis 17", MControlPacket::BITDEPTH3, 1<<(MControlPacket::BITDEPTH3)-1 });
-    axes_.push_back({ "Axis 18", MControlPacket::BITDEPTH4, 1<<(MControlPacket::BITDEPTH4)-1 });
+    axes_.push_back({ "Axis 0", MControlPacket::BITDEPTH1, (1<<(MControlPacket::BITDEPTH1))-1 });
+    axes_.push_back({ "Axis 1", MControlPacket::BITDEPTH1, (1<<(MControlPacket::BITDEPTH1))-1 });
+    axes_.push_back({ "Axis 2", MControlPacket::BITDEPTH1, (1<<(MControlPacket::BITDEPTH1))-1 });
+    axes_.push_back({ "Axis 3", MControlPacket::BITDEPTH1, (1<<(MControlPacket::BITDEPTH1))-1 });
+    axes_.push_back({ "Axis 4", MControlPacket::BITDEPTH1, (1<<(MControlPacket::BITDEPTH1))-1 });
+    axes_.push_back({ "Axis 5", MControlPacket::BITDEPTH2, (1<<(MControlPacket::BITDEPTH2))-1 });
+    axes_.push_back({ "Axis 6", MControlPacket::BITDEPTH2, (1<<(MControlPacket::BITDEPTH2))-1 });
+    axes_.push_back({ "Axis 7", MControlPacket::BITDEPTH2, (1<<(MControlPacket::BITDEPTH2))-1 });
+    axes_.push_back({ "Axis 8", MControlPacket::BITDEPTH2, (1<<(MControlPacket::BITDEPTH2))-1 });
+    axes_.push_back({ "Axis 9", MControlPacket::BITDEPTH2, (1<<(MControlPacket::BITDEPTH2))-1 });
+    axes_.push_back({ "Axis 10", MControlPacket::BITDEPTH3, (1<<(MControlPacket::BITDEPTH3))-1 });
+    axes_.push_back({ "Axis 11", MControlPacket::BITDEPTH3, (1<<(MControlPacket::BITDEPTH3))-1 });
+    axes_.push_back({ "Axis 12", MControlPacket::BITDEPTH3, (1<<(MControlPacket::BITDEPTH3))-1 });
+    axes_.push_back({ "Axis 13", MControlPacket::BITDEPTH3, (1<<(MControlPacket::BITDEPTH3))-1 });
+    axes_.push_back({ "Axis 14", MControlPacket::BITDEPTH3, (1<<(MControlPacket::BITDEPTH3))-1 });
+    axes_.push_back({ "Axis 15", MControlPacket::BITDEPTH3, (1<<(MControlPacket::BITDEPTH3))-1 });
+    axes_.push_back({ "Axis 16", MControlPacket::BITDEPTH3, (1<<(MControlPacket::BITDEPTH3))-1 });
+    axes_.push_back({ "Axis 17", MControlPacket::BITDEPTH3, (1<<(MControlPacket::BITDEPTH3))-1 });
+    axes_.push_back({ "Axis 18", MControlPacket::BITDEPTH4, (1<<(MControlPacket::BITDEPTH3))-1 });
 }
 
 uint8_t MTransmitter::numInputs() {
@@ -39,6 +39,8 @@ const std::string& MTransmitter::inputName(uint8_t input) {
 bool MTransmitter::transmit(){
     MPacket packet;
 
+    //printf("MTransmitter: Transmitting\n");
+
     packet.type = MPacket::PACKET_TYPE_CONTROL;
     MControlPacket& p = packet.payload.control;
     for(uint8_t i=0; i<axes_.size(); i++) {
@@ -47,6 +49,7 @@ bool MTransmitter::transmit(){
 
     for(auto& n: protocol_->pairedNodes()) {
         if(n.isReceiver) {
+            printf("MTransmitter: Sending packet to %s\n", n.addr.toString().c_str());
             protocol_->sendPacket(n.addr, packet, false);
         }
         protocol_->bumpSeqnum();

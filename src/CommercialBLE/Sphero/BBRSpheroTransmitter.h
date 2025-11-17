@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#if !CONFIG_IDF_TARGET_ESP32S2
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
 
 #include <BLEDevice.h>
 #include <BLEUtils.h>
@@ -20,6 +20,8 @@ class SpheroProtocol;
 class SpheroTransmitter: public TransmitterBase<SpheroProtocol> {
 public:
     SpheroTransmitter(SpheroProtocol* proto);
+
+    virtual ProtocolType protocolType() { return SPHERO_BLE; }
 
     bool canAddAxes() { return true; }
 

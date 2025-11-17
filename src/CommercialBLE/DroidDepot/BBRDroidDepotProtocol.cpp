@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#if !CONFIG_IDF_TARGET_ESP32S2
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
 
 #include "BBRDroidDepotProtocol.h"
 #include "BBRDroidDepotTransmitter.h"
@@ -29,7 +29,7 @@ Transmitter* DroidDepotProtocol::createTransmitter(uint8_t transmitterType) {
 
 bool DroidDepotProtocol::isAcceptableForDiscovery(BLEAdvertisedDevice advertisedDevice) {
     if(advertisedDevice.getName() == "DROID") {
-        Serial.printf("Found device with name \"%s\"\n", advertisedDevice.getName().c_str());
+        printf("Found device with name \"%s\"\n", advertisedDevice.getName().c_str());
         return true;
     }
     return false;

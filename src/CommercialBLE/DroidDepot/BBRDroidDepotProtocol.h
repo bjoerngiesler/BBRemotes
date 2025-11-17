@@ -1,7 +1,7 @@
 #if !defined(BBRDROIDDEPOTPROTOCOL_H)
 #define BBRDROIDDEPOTPROTOCOL_H
 
-#if !CONFIG_IDF_TARGET_ESP32S2
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
 
 #include <BLEAdvertisedDevice.h>
 
@@ -12,6 +12,9 @@ namespace rmt {
 class DroidDepotProtocol: public BLEProtocol {
 public:
     DroidDepotProtocol();
+
+    virtual ProtocolType protocolType() { return DROIDDEPOT_BLE; }
+
     virtual uint8_t numTransmitterTypes();
 
     virtual Transmitter* createTransmitter(uint8_t transmitterType=0);

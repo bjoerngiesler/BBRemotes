@@ -16,7 +16,7 @@ public:
 
     MProtocol();
 
-    virtual bool init(const std::string& nodeName);
+    virtual ProtocolType protocolType() { return INVALID_PROTOCOL; }
 
     virtual Transmitter* createTransmitter(uint8_t transmitterType=0);
     virtual Receiver* createReceiver();

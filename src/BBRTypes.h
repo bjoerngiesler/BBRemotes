@@ -3,10 +3,35 @@
 
 #include <sys/types.h>
 #include <string>
+#include <stdarg.h>
 #include <Arduino.h>
 
 namespace bb {
 namespace rmt {
+
+static int printfFinal(const char* str) {
+    Serial.print(str);
+    return strlen(str);
+}
+
+static int vprintf(const char* format, va_list args) {
+    int len = vsnprintf(NULL, 0, format, args) + 1;
+    char *buf = new char[len];
+    vsnprintf(buf, len, format, args);
+    printfFinal(buf);
+    free(buf);
+    return len;
+}
+
+static int printf(const char* format, ...) {
+    int retval;
+    va_list args;
+    va_start(args, format);
+    retval = vprintf(format, args);
+    va_end(args);
+    return retval;
+}
+
 
 static const uint8_t NAME_MAXLEN = 10;
 typedef uint8_t InputID;
@@ -27,11 +52,11 @@ struct __attribute__ ((packed)) NodeAddr {
     uint8_t byte[8];
 
     uint32_t addrHi() const { 
-       return byte[4] | (byte[5]>>8) | (byte[6]>>16) | (byte[7])>>24; 
+        return byte[4] | (byte[5]<<8) | (byte[6]<<16) | (byte[7])<<24; 
     }
 
     uint32_t addrLo() const { 
-        return byte[0] | (byte[1]>>8) | (byte[2]>>16) | (byte[3])>>24; 
+        return byte[0] | (byte[1]<<8) | (byte[2]<<16) | (byte[3])<<24; 
     }
 
     bool isZero() const { 
@@ -48,8 +73,16 @@ struct __attribute__ ((packed)) NodeAddr {
     }
 
     void fromXBeeAddress(uint32_t addrHi, uint32_t addrLo) {
-        for(int i=0; i<4; i++) byte[i] = (addrLo<<(8*i)) & 0xff;
-        for(int i=4; i<8; i++) byte[i] = (addrHi<<(8*(i-4))) & 0xff;
+        byte[0] = addrLo & 0xff;
+        byte[1] = (addrLo>>8) & 0xff;
+        byte[2] = (addrLo>>16) & 0xff;
+        byte[3] = (addrLo>>24) & 0xff;
+        byte[4] = addrHi & 0xff;
+        byte[5] = (addrHi>>8) & 0xff;
+        byte[6] = (addrHi>>16) & 0xff;
+        byte[7] = (addrHi>>24) & 0xff;
+        //for(int i=0; i<8; i++) printf("%x:", byte[i]);
+        //printf("\n");
     }
 
     void fromMACAddress(const uint8_t addr[6]) {
@@ -59,9 +92,11 @@ struct __attribute__ ((packed)) NodeAddr {
 
     void fromString(const std::string& str) {
         if(str.length() == 17 && 
-           str[2] == str[5] == str[8] == str[11] == str[14] == ':') { // MAC address
+           str[2] == ':' && str[5] == ':' && str[8] == ':' && str[11] == ':' && str[14] == ':') { // MAC address
             uint8_t m[6];
-            sscanf(str.c_str(), "%x:%x:%x:%x:%x:%x", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5]);
+            sscanf(str.c_str(), "%x:%x:%x:%x:%x:%x", 
+                   (unsigned int*)&m[0], (unsigned int*)&m[1], (unsigned int*)&m[2], 
+                   (unsigned int*)&m[3], (unsigned int*)&m[4], (unsigned int*)&m[5]);
             fromMACAddress(m);
         } else if(str.length() == 17 && str[8] == ':' && str[2] != ':') {
             uint32_t hi, lo;

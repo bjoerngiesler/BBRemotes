@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
+
 #include "BBRMESPProtocol.h"
 #include "../../BBRTypes.h"
 
@@ -39,7 +41,9 @@ bool MESPProtocol::init(const std::string& nodeName) {
 
     seqnum_ = 0;
 
-    return MProtocol::init(nodeName);
+    nodeName_ = nodeName;
+
+    return true;
 }
 
 bool MESPProtocol::discoverNodes(float timeout) {
@@ -219,3 +223,5 @@ bool MESPProtocol::waitForPacket(std::function<bool(const MPacket&, const NodeAd
     }
     return false;
 }
+
+#endif // #if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
