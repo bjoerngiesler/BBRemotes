@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_ARCH_SAMD
+#if !CONFIG_IDF_TARGET_ESP32S2 && !ARDUINO_SAMD_MKRWIFI1010
 
 #include "BBRSpheroProtocol.h"
 #include "BBRSpheroTransmitter.h"

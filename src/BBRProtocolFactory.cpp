@@ -14,7 +14,7 @@ Protocol* ProtocolFactory::createProtocol(ProtocolType type) {
         break;
     
     case MONACO_ESPNOW:
-#if ARDUINO_ARCH_SAMD
+#if ARDUINO_SAMD_MKRWIFI1010
         printf("Error creating Protocol: Target does not support ESPNow\n");
         return nullptr;
 #else
@@ -28,7 +28,7 @@ Protocol* ProtocolFactory::createProtocol(ProtocolType type) {
         break;
 
     case MONACO_BLE:
-#if CONFIG_IDF_TARGET_ESP32S2 || ARDUINO_ARCH_SAMD
+#if CONFIG_IDF_TARGET_ESP32S2 || ARDUINO_SAMD_MKRWIFI1010
         printf("Error creating Protocol: Target does not support BLE\n");
         return nullptr;
 #else
@@ -43,7 +43,7 @@ Protocol* ProtocolFactory::createProtocol(ProtocolType type) {
         break;
 
     case SPHERO_BLE:
-#if CONFIG_IDF_TARGET_ESP32S2 || ARDUINO_ARCH_SAMD
+#if CONFIG_IDF_TARGET_ESP32S2 || ARDUINO_SAMD_MKRWIFI1010
         printf("Error creating Protocol: Target does not support BLE\n");
         return nullptr;
 #else
