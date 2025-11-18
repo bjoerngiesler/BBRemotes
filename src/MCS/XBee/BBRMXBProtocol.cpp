@@ -101,6 +101,8 @@ bool MXBProtocol::discoverNodes(float timeout) {
 #endif
 
 bool MXBProtocol::init(const std::string& nodeName, uint16_t chan, uint16_t pan) {
+	nodeName_ = nodeName;
+	
 	// empty uart
 	while(uart_->available()) uart_->read();
 	printf("Initializing transmitter!\n");

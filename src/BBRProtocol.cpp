@@ -5,6 +5,15 @@ using namespace rmt;
 
 static const std::string EMPTY("");
 
+Protocol::Protocol() {
+
+}
+
+Protocol::~Protocol() {
+
+}
+
+
 Transmitter* Protocol::createTransmitter(uint8_t transmitterType) { 
     return nullptr; 
 }

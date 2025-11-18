@@ -26,6 +26,11 @@ MESPProtocol::MESPProtocol() {
     broadcastAdded_ = false;
 }
 
+MESPProtocol::~MESPProtocol() {
+    Serial.printf("Shutting down ESP-NOW.\n");
+    esp_now_deinit();
+}
+
 bool MESPProtocol::init(const std::string& nodeName) {
     Serial.printf("Initializing ESP-NOW... ");
 
@@ -59,8 +64,8 @@ void MESPProtocol::onDataSent(const unsigned char *buf, esp_now_send_status_t st
 
 void MESPProtocol::onDataReceived(const uint8_t *mac, const uint8_t *data, int len) {
     if(len != sizeof(MPacket)) {
-        Serial.printf("onDataReceived(%02x:%02x:%02x:%02x:%02x:%02x, 0x%x, %d) - invalid size (should be %d)\n", 
-                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], data, len), sizeof(MPacket);
+        Serial.printf("onDataReceived(%02x:%02x:%02x:%02x:%02x:%02x, 0x%p, %d) - invalid size (should be %d)\n", 
+                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], data, len, sizeof(MPacket));
         return;
     }
 

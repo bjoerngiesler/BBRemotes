@@ -7,6 +7,22 @@
 using namespace bb;
 using namespace rmt;
 
+bool dummyReadFn(ProtocolStorage& storage) { return false; }
+bool dummyWriteFn(const ProtocolStorage& storage) { return false; }
+
+static std::function<bool(ProtocolStorage&)> readFn_ = dummyReadFn;
+static std::function<bool(const ProtocolStorage&)> writeFn_ = dummyWriteFn;
+static ProtocolStorage storage_;
+static bool needsRead_ = true;
+
+void ProtocolFactory::setMemoryReadFunction(std::function<bool(ProtocolStorage&)> readFn) {
+    readFn_ = readFn;;
+}
+
+void ProtocolFactory::setMemoryWriteFunction(std::function<bool(const ProtocolStorage&)> writeFn) {
+    writeFn_ = writeFn;
+}
+
 Protocol* ProtocolFactory::createProtocol(ProtocolType type) {
     switch(type) {
     case MONACO_XBEE:
@@ -67,10 +83,37 @@ Protocol* ProtocolFactory::createProtocol(ProtocolType type) {
     return nullptr;
 }
 
-bool ProtocolFactory::storeProtocolInfo(Protocol* protocol) {
-    return true;
+std::vector<std::string> ProtocolFactory::storedProtocols() {
+    if(needsRead_) {
+        readFn_(storage_);
+        needsRead_ = false;
+    }
+
+    std::vector<std::string> retval;
+    for(int i=0; i<storage_.num; i++) {
+        char buf[NAME_MAXLEN+1];
+        memset(buf, 0, sizeof(buf));
+        memcpy(buf, storage_.blocks[i].name, NAME_MAXLEN);
+        retval.push_back(buf);
+    }
+
+    return retval;
 }
 
-bool ProtocolFactory::eraseProtocolInfo() {
-    return true;
+Protocol* ProtocolFactory::loadProtocol(const std::string& name) {
+    if(needsRead_) {
+        readFn_(storage_);
+        needsRead_ = false;
+    }
+    return NULL;
+}
+
+bool ProtocolFactory::storeProtocol(const std::string& name, Protocol* proto) {
+    StorageBlock block;
+    memcpy(block.name, name.c_str(), name.size() < NAME_MAXLEN ? name.size() : NAME_MAXLEN);
+    return false;
+}
+
+bool ProtocolFactory::eraseProtocol(const std::string& name) {
+    return false;
 }

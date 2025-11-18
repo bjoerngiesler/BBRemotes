@@ -8,7 +8,7 @@
 #include "BBRTransmitter.h"
 #include "BBRReceiver.h"
 #include "BBRMixManager.h"
-#include "BBRProtocolType.h"
+#include "BBRTypes.h"
 
 namespace bb {
 namespace rmt {
@@ -21,6 +21,9 @@ class Configurator;
 class Protocol {
 public:
     virtual ProtocolType protocolType() { return INVALID_PROTOCOL; }
+
+    Protocol();
+    virtual ~Protocol();
 
     virtual bool init(const std::string& nodeName) = 0;
 

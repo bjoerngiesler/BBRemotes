@@ -16,6 +16,7 @@ namespace rmt {
 class MESPProtocol: public MProtocol {
 public:
     MESPProtocol();
+    virtual ~MESPProtocol();
 	
     virtual ProtocolType protocolType() { return MONACO_ESPNOW; }
 

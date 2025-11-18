@@ -46,7 +46,7 @@ uint8_t Transmitter::addAxis(const std::string& name, uint8_t bitDepth) {
 
 bool Transmitter::setAxisValue(uint8_t axis, float value, Unit unit) {
     if(axis >= axes_.size()) return false;
-    uint32_t maxval = (1<<bitDepthForAxis(axis))-1;
+    float maxval = (1<<bitDepthForAxis(axis))-1;
     switch(unit) {
     case UNIT_DEGREES:
         value = (value/360.0f) * maxval;
@@ -101,7 +101,7 @@ float Transmitter::axisValue(uint8_t axis, Unit unit) {
 bool Transmitter::setRawAxisValue(uint8_t axis, uint32_t value) {
     if(axis >= axes_.size()) return false;
     uint32_t maxval = (1 << axes_[axis].bitDepth)-1;
-    value = constrain(value, 0, maxval);
+    if(value > maxval) value = maxval;
     axes_[axis].value = value;
     return true;
 }

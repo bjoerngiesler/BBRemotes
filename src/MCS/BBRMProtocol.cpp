@@ -200,7 +200,10 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		p.pairingPayload.discovery.isTransmitter = (transmitter_ != nullptr);
 		p.pairingPayload.discovery.isReceiver = (receiver_ != nullptr);
 		p.pairingPayload.discovery.isConfigurator = (configurator_ != nullptr);
-		snprintf(p.pairingPayload.discovery.name, NAME_MAXLEN, nodeName_.c_str());
+		memset(p.pairingPayload.discovery.name, 0, sizeof(p.pairingPayload.discovery.name));
+		memcpy(p.pairingPayload.discovery.name, nodeName_.c_str(), 
+			nodeName_.size() < NAME_MAXLEN ? nodeName_.size() : NAME_MAXLEN);
+		printf("Copied %s\n", nodeName_.c_str());
 
 		reply.seqnum = seqnum_;
 		seqnum_ = (seqnum_ + 1) % MAX_SEQUENCE_NUMBER;
@@ -221,6 +224,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		descr.isTransmitter = packet.pairingPayload.discovery.isTransmitter;
 		descr.isReceiver = packet.pairingPayload.discovery.isReceiver;
 		descr.setName(packet.pairingPayload.discovery.name);
+		printf("Name: %s\n", packet.pairingPayload.discovery.name);
 
 		if(!descr.isConfigurator && !descr.isTransmitter && !descr.isReceiver) {
 			printf("Node \"%s\" at %s is neither configurator nor receiver nor transmitter. Ignoring.\n",

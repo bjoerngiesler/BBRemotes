@@ -8,6 +8,17 @@
 
 namespace bb {
 namespace rmt {
+  
+enum ProtocolType {
+    MONACO_XBEE       = 'X',
+    MONACO_ESPNOW     = 'E',
+    MONACO_BLE        = 'B',
+    MONACO_UDP        = 'U',
+    SPHERO_BLE        = 'S',
+    DROIDDEPOT_BLE    = 'D',
+    SPEKTRUM_DSSS     = 'd',
+    INVALID_PROTOCOL  = '-'
+};
 
 static int printfFinal(const char* str) {
     Serial.print(str);
@@ -100,7 +111,7 @@ struct __attribute__ ((packed)) NodeAddr {
             fromMACAddress(m);
         } else if(str.length() == 17 && str[8] == ':' && str[2] != ':') {
             uint32_t hi, lo;
-            sscanf(str.c_str(), "%lx:%lx", &hi, &lo);
+            sscanf(str.c_str(), "%x:%x", &hi, &lo);
             fromXBeeAddress(hi, lo);
         } else {
             for(int i=0; i<8; i++) byte[i] = 0;
@@ -112,7 +123,7 @@ struct __attribute__ ((packed)) NodeAddr {
         if(byte[6] == 0 && byte[7] == 0) {
             sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", byte[0], byte[1], byte[2], byte[3], byte[4], byte[5]);
         } else {
-            sprintf(buf, "%0lx:%0lx", addrHi(), addrLo());
+            sprintf(buf, "%0x:%0x", addrHi(), addrLo());
         }
         return buf;
     }
