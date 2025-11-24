@@ -27,12 +27,9 @@ bb::rmt::MXBProtocol::MXBProtocol() {
 	memset(packetBuf_, 0, sizeof(packetBuf_));
 	packetBufPos_ = 0;
 	apiMode_ = false;
+	initialized_ = false;
 }
 
-void bb::rmt::MXBProtocol::setUart(HardwareSerial* uart) {
-	uart_ = uart;
-}
-	
 void bb::rmt::MXBProtocol::setChannel(uint16_t channel) {
 	chan_ = channel;
 }
@@ -41,68 +38,20 @@ void bb::rmt::MXBProtocol::setPAN(uint16_t pan) {
 	pan_ = pan;
 }
 
-#if 0
-bool MXBProtocol::discoverNodes(float timeout) {
-	if(apiMode_ == false) {
-		printf("discoverNodes() can only be run in API mode\n");
+bool MXBProtocol::init(const std::string& nodeName, uint16_t chan, uint16_t pan, HardwareSerial *uart) {
+	if(initialized_) {
+		printf("Already initialized\n");
+		return true;
+	}
+
+	if(uart == nullptr) {
+		printf("UART is nullptr -- that won't work\n");
 		return false;
 	}
-
-	discoveredNodes_.clear();
-
-	APIFrame request = APIFrame::atRequest(0x5, ('N'<<8 | 'D'));
-	if(send(request) != true) return false;
-
-	int to = 1000*timeout;
-
-	while(to > 0) {
-		delay(1);
-		to--;
-
-		if(available()) {
-			APIFrame response;
-			if(receive(response) == false) {
-				printf("Error receiving response\n");
-				continue;
-			}
-
-			uint8_t frameID, status;
-			uint16_t command, length;
-			uint8_t *data;
-
-			if(response.unpackATResponse(frameID, command, status, &data, length) == false) {
-				continue;
-			}
-
-			if(status != 0) {
-				printf("Response with status %d\n", status);
-				continue;
-			}	
-
-			if(length < APIFrame::ATResponseNDMinLength) {
-				printf("Expected >=%d bytes, found %d\n", APIFrame::ATResponseNDMinLength, length);
-				continue;
-			}
-
-			APIFrame::ATResponseND *r = (APIFrame::ATResponseND*)data;
-			printf("Discovered station at address 0x%lx:%lx, RSSI %d, name \"%s\"\n", 
-				(uint32_t)r->addrHi, (uint32_t)r->addrLo, r->rssi, r->name);
-
-			NodeDescription node;
-			node.addr.fromXBeeAddress(r->addrHi, r->addrLo);
-			node.setName(r->name);
-
-			discoveredNodes_.push_back(node);
-		}
-	}
-
-	return true;
-}
-#endif
-
-bool MXBProtocol::init(const std::string& nodeName, uint16_t chan, uint16_t pan) {
-	nodeName_ = nodeName;
 	
+	uart_ = uart;
+	nodeName_ = nodeName;
+
 	// empty uart
 	while(uart_->available()) uart_->read();
 	printf("Initializing transmitter!\n");
@@ -216,6 +165,8 @@ bool MXBProtocol::init(const std::string& nodeName, uint16_t chan, uint16_t pan)
 
 	leaveATMode();
 
+	initialized_ = true;
+
 	return true;
 }
 
@@ -227,10 +178,10 @@ bool MXBProtocol::step() {
 			uint8_t rssi;
 			MPacket packet;
 			if(receiveAPIMode(srcAddr, rssi, packet) == false) {
-				printf("receiveAPIMode(): Failure\n");
+				//printf("receiveAPIMode(): Failure\n");
 				continue;
 			}
-			printf("Received packet from %lx:%lx type %d\n", srcAddr.addrHi(), srcAddr.addrLo(), packet.type);
+			//printf("Received packet from %lx:%lx type %d\n", srcAddr.addrHi(), srcAddr.addrLo(), packet.type);
 			MProtocol::incomingPacket(srcAddr, packet);
 			packetsHandled++;
 		} else {
@@ -446,16 +397,18 @@ void MXBProtocol::setDebugFlags(DebugFlags debug) {
 }
 
 
-bool MXBProtocol::sendBroadcastPacket(const MPacket& packet, bool bumpSeqnum) {
+bool MXBProtocol::sendBroadcastPacket(MPacket& packet, bool bumpSeqnum) {
 	NodeAddr addr;
 	addr.fromXBeeAddress(0,0xffff);
 	return sendPacket(addr, packet, bumpSeqnum);
 }
 
-bool MXBProtocol::sendPacket(const NodeAddr& dest, const MPacket& packet, bool bumpS) {
+bool MXBProtocol::sendPacket(const NodeAddr& dest, MPacket& packet, bool bumpS) {
 	uint8_t buf[11+sizeof(packet)];
 	bool ack = false;
 
+	packet.seqnum = seqnum_;
+	packet.source = source_;
 	packet.crc = packet.calculateCRC();
 
 	buf[0] = 0x0;  // transmit request - 64bit frame. This is deprecated.
@@ -475,9 +428,9 @@ bool MXBProtocol::sendPacket(const NodeAddr& dest, const MPacket& packet, bool b
 	}
 
 	memcpy(&(buf[11]), &packet, sizeof(packet));
-	printf("Sending %d bytes with 0x%x to 0x%lx:%lx - ", sizeof(packet)+11, buf[0], dest.addrHi(), dest.addrLo());
-	for(int i=2; i<=9; i++) printf("%02x", buf[i]);
-	printf("\n");
+	//printf("Sending %d bytes with 0x%x to 0x%lx:%lx - ", sizeof(packet)+11, buf[0], dest.addrHi(), dest.addrLo());
+	//for(int i=2; i<=9; i++) printf("%02x", buf[i]);
+	//printf("\n");
 
 	APIFrame frame(buf, 11+sizeof(packet));
 	if(send(frame) == true) {
@@ -939,15 +892,25 @@ static bool waitfor(std::function<bool(void)> fn, uint8_t timeout) {
 
 bool MXBProtocol::receive(APIFrame& frame) {
 	uint8_t byte = 0xff;
+	unsigned long garbageBytes = 0;
 
 	while(uart_->available()) {
 		byte = uart_->read();
 		if(byte == 0x7e) {
+			if(garbageBytes != 0) {
+				printf("Read %d garbage bytes\n", garbageBytes);
+				garbageBytes = 0;
+			}
 			break;
 		} else {
-			printf("Read garbage '%c' 0x%x\n", byte, byte);
+			garbageBytes++;
+			if(garbageBytes > 1000) {
+				printf("Read 1000 garbage bytes\n");
+				garbageBytes = 0;
+			}
 		}
 	}
+
 	if(byte != 0x7e) {
 		//printf("No start delimiter\n");
 		return false;
@@ -984,7 +947,7 @@ bool MXBProtocol::receive(APIFrame& frame) {
 	uint8_t checksum = readEscapedByte(uart_);
 
 	if(frame.verifyChecksum(checksum) == false) {
-		printf("Checksum invalid - expected 0x%x, got 0x%x\n", frame.checksum(), checksum);
+		//printf("Checksum invalid - expected 0x%x, got 0x%x\n", frame.checksum(), checksum);
 		return false;
 	}
 

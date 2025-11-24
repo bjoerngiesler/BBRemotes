@@ -22,7 +22,7 @@ public:
     virtual ProtocolType protocolType() { return INVALID_PROTOCOL; }
 
     virtual bool init(const std::string& nodeName);
-
+    virtual void deinit();
 
     // BLE callbacks
     virtual bool discoverNodes(float timeout = 5);
@@ -33,13 +33,17 @@ public:
     BLEClient* getClient() { return pClient_; }
 
     virtual bool requiresConnection() { return true; }
-    virtual bool isConnected() { return connected_; }
+    virtual bool isConnected() { bb::rmt::printf("Connected: %d\n", connected_); return connected_; }
+
+    virtual bool connect();
 
     // BLEClientCallbacks methods
     void onConnect(BLEClient *pClient);
     void onDisconnect(BLEClient *pClient);
 
 protected:
+    virtual bool connect(const NodeAddr& addr) = 0;
+
     BLEScan* pBLEScan_;
     BLEAdvertisedDevice* myDevice_;
     BLERemoteCharacteristic* pRemoteCharacteristic_;
@@ -47,6 +51,7 @@ protected:
     BLEClient* pClient_;
 
     bool connected_;
+    bool initialized_;
 };
 
 };

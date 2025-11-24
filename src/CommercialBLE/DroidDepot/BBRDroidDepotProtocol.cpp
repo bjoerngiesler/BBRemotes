@@ -16,10 +16,11 @@ DroidDepotProtocol::DroidDepotProtocol() {
     pBLEScan_ = nullptr;
     myDevice_ = nullptr;
     pCharacteristic_ = nullptr;
-
+    transmitter_ = nullptr;
 }
 
 uint8_t DroidDepotProtocol::numTransmitterTypes() { return 1; }
+
 Transmitter* DroidDepotProtocol::createTransmitter(uint8_t transmitterType) {
     if(transmitter_ == nullptr) {
         transmitter_ = new DroidDepotTransmitter(this);
@@ -36,6 +37,13 @@ bool DroidDepotProtocol::isAcceptableForDiscovery(BLEAdvertisedDevice advertised
 }
 
 bool DroidDepotProtocol::connect(const NodeAddr& addr) {
+    if(pClient_ == nullptr) {
+        pClient_ = BLEDevice::createClient();
+        Serial.printf(" - Created client\n");
+
+        pClient_->setClientCallbacks(this);
+    }
+
     // Connect to the remote BLE Server.
     Serial.printf("Connecting to %s\n", addr.toString().c_str());
     pClient_->connect(BLEAddress(addr.toString()), esp_ble_addr_type_t(1));
@@ -88,6 +96,7 @@ bool DroidDepotProtocol::initialWrites() {
 }
 
 bool DroidDepotProtocol::pairWith(const NodeDescription& node) {
+    bb::rmt::printf("Pairing with DroidDepot\n");
     if(isPaired(node.addr)) {
         Serial.printf("Already paired with %s\n", node.addr.toString().c_str());
         return false;
@@ -106,6 +115,11 @@ bool DroidDepotProtocol::pairWith(const NodeDescription& node) {
     }
     
     return Protocol::pairWith(node);
+}
+
+bool DroidDepotProtocol::transmitCommand(uint8_t *payload, uint8_t len) {
+    pCharacteristic_->writeValue(payload, len);
+    return true;
 }
 
 #endif // !CONFIG_IDF_TARGET_ESP32S2

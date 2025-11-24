@@ -77,13 +77,20 @@ float Transmitter::axisValue(uint8_t axis, Unit unit) {
     uint32_t raw = rawAxisValue(axis);
     if(unit == UNIT_RAW) return raw;
 
+#if 0
+    for(unsigned int i=0; i<axes_.size(); i++) {
+        Serial.printf("Axis %d: bitdepth %d\n", i, axes_[i].bitDepth);
+    }
+#endif
+
     uint32_t maxval = (1<<bitDepthForAxis(axis))-1;
     float normed = float(double(raw)/double(maxval)); // double here because of potentially big numbers.
+    //Serial.printf("raw: %d maxval: %d normed: %f axis: %d bitdepth: %d\n", raw, maxval, normed, axis, bitDepthForAxis(axis));
     switch(unit) {
     case UNIT_DEGREES:
         return normed * 360.0f;
         break;
-    case UNIT_DEGREES_CENTERED:
+    case UNIT_DEGREES_CENTERED: 
         return (normed * 360.0f)-180.0f;
         break;
     case UNIT_UNITY_CENTERED:
@@ -102,6 +109,7 @@ bool Transmitter::setRawAxisValue(uint8_t axis, uint32_t value) {
     if(axis >= axes_.size()) return false;
     uint32_t maxval = (1 << axes_[axis].bitDepth)-1;
     if(value > maxval) value = maxval;
+    //Serial.printf("setRawAxisValue: %d\n", value);
     axes_[axis].value = value;
     return true;
 }

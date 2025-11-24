@@ -11,6 +11,10 @@ uint8_t MixManager::numMixes() const {
     return mixes_.size(); 
 }
 
+const std::map<InputID,AxisMix>& MixManager::mixes() {
+    return mixes_;
+}
+
 const AxisMix& MixManager::mixForInput(InputID input) const { 
     for(auto& mix: mixes_) {
         if(mix.first == input) return mix.second;

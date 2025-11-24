@@ -14,6 +14,8 @@ namespace rmt {
 //! Abstract receiver superclass
 class Receiver: public MixManager {
 public:
+    virtual ~Receiver() {}
+
     /*
         Input handling
     */
@@ -27,7 +29,7 @@ public:
     virtual const std::string& inputName(uint8_t input);
     virtual uint8_t inputWithName(const std::string& name);
 
-    virtual void setDataReceivedCallback(std::function<void(const NodeAddr&, uint8_t)> cb) { dataReceivedCB_ = cb; }
+    virtual void setDataReceivedCallback(std::function<void(const NodeAddr&, uint8_t, const void*, uint8_t)> cb) { dataReceivedCB_ = cb; }
     virtual void setDataFinishedCallback(std::function<void(const NodeAddr&, uint8_t)> cb) { dataFinishedCB_ = cb; }
     virtual void setTimeoutCallback(std::function<void(const NodeAddr&)> cb) { timeoutCB_ = cb; }
 
@@ -38,7 +40,8 @@ protected:
     };
 
     std::vector<Input> inputs_;
-    std::function<void(const NodeAddr&,uint8_t)> dataReceivedCB_ = nullptr, dataFinishedCB_ = nullptr;
+    std::function<void(const NodeAddr&, uint8_t, const void*, uint8_t)> dataReceivedCB_ = nullptr;
+    std::function<void(const NodeAddr&,uint8_t)> dataFinishedCB_ = nullptr;
     std::function<void(const NodeAddr&)> timeoutCB_ = nullptr;
 };
 

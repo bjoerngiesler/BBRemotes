@@ -67,10 +67,24 @@ MProtocol::MProtocol() {
     seqnum_ = 0;
 }
 
+bool MProtocol::serialize(StorageBlock& block) {
+	block.protocolSpecific[0] = source_;
+	block.protocolSpecific[1] = primary_;
+	return Protocol::serialize(block);
+}
+    
+bool MProtocol::deserialize(StorageBlock& block) {
+	source_ = (MPacket::PacketSource)block.protocolSpecific[0];
+	primary_ = (block.protocolSpecific[1] != 0);
+	return Protocol::deserialize(block);
+}
+
+
 Transmitter* MProtocol::createTransmitter(uint8_t transmitterType) {
     if(transmitter_ == nullptr) {
         transmitter_ = new MTransmitter(this);
     }
+	transmitter_->setPrimary(primary_);
     return transmitter_;
 }
 
@@ -92,6 +106,8 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 			printf("Got control packet from %s but we are not a receiver.\n", addr.toString().c_str());
 			return false;
 		}
+		if(packet.payload.control.primary) commHappened();
+
 		return ((MReceiver*)receiver_)->incomingControlPacket(addr, packet.source, packet.seqnum, packet.payload.control);
 		break;
 
@@ -100,7 +116,8 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 			printf("Got state packet from %s but we are not a receiver.\n", addr.toString().c_str());
 			return false;
 		}
-		return ((MReceiver*)receiver_)->incomingStatePacket(addr, packet.source, packet.seqnum, packet.payload.state);
+		//return ((MReceiver*)receiver_)->incomingStatePacket(addr, packet.source, packet.seqnum, packet.payload.state);
+		return incomingStatePacket(addr, packet.source, packet.seqnum, packet.payload.state);
 		break;
 
 	case MPacket::PACKET_TYPE_CONFIG:
@@ -151,8 +168,7 @@ bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource
 		if(receiver_ == nullptr) return false;
 		if(receiver_->numInputs() <= packet.cfgPayload.name.index) return false;
 		const std::string& name = receiver_->inputName(packet.cfgPayload.name.index);
-		memset(packet.cfgPayload.name.name, 0, sizeof(packet.cfgPayload.name.name));
-		memcpy(packet.cfgPayload.name.name, name.c_str(), MAX(sizeof(packet.cfgPayload.name.name), NAME_MAXLEN));
+		packet.cfgPayload.name.name = name;
 		printf("Got request for input #%d, replying with \"%s\"\n", packet.cfgPayload.name.index, name.c_str());
 		return true;
 	}
@@ -188,7 +204,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		// FIXME filter for builder ID
 
 		printf("Replying to %s (\"%s\") with broadcast pairing packet\n", 
-			          addr.toString().c_str(), packet.pairingPayload.discovery.name);
+			          addr.toString().c_str(), std::string(packet.pairingPayload.discovery.name).c_str());
 		MPacket reply;
 		reply.source = source_;
 		reply.type = MPacket::PACKET_TYPE_PAIRING;
@@ -200,10 +216,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		p.pairingPayload.discovery.isTransmitter = (transmitter_ != nullptr);
 		p.pairingPayload.discovery.isReceiver = (receiver_ != nullptr);
 		p.pairingPayload.discovery.isConfigurator = (configurator_ != nullptr);
-		memset(p.pairingPayload.discovery.name, 0, sizeof(p.pairingPayload.discovery.name));
-		memcpy(p.pairingPayload.discovery.name, nodeName_.c_str(), 
-			nodeName_.size() < NAME_MAXLEN ? nodeName_.size() : NAME_MAXLEN);
-		printf("Copied %s\n", nodeName_.c_str());
+		p.pairingPayload.discovery.name = nodeName_;
 
 		reply.seqnum = seqnum_;
 		seqnum_ = (seqnum_ + 1) % MAX_SEQUENCE_NUMBER;
@@ -223,15 +236,20 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		descr.isConfigurator = packet.pairingPayload.discovery.isConfigurator;
 		descr.isTransmitter = packet.pairingPayload.discovery.isTransmitter;
 		descr.isReceiver = packet.pairingPayload.discovery.isReceiver;
-		descr.setName(packet.pairingPayload.discovery.name);
-		printf("Name: %s\n", packet.pairingPayload.discovery.name);
+		descr.name = packet.pairingPayload.discovery.name;
+		descr.protoSpecific = 0x0;
 
 		if(!descr.isConfigurator && !descr.isTransmitter && !descr.isReceiver) {
-			printf("Node \"%s\" at %s is neither configurator nor receiver nor transmitter. Ignoring.\n",
-			              descr.getName().c_str(), addr.toString().c_str());
+			bb::rmt::printf("Node \"%s\" at %s is neither configurator nor receiver nor transmitter. Ignoring.\n",
+			                std::string(descr.name).c_str(), addr.toString().c_str());
 			return false;
-		}
+		} 
 
+		bb::rmt::printf("Discovered \"%s\" at %s (configurator: %s receiver: %s transmitter: %s).\n",
+					std::string(descr.name).c_str(), addr.toString().c_str(),
+					descr.isConfigurator ? "yes" : "no",
+					descr.isReceiver ? "yes" : "no",
+					descr.isTransmitter ? "yes" : "no");
 		discoveredNodes_.push_back(descr);
 		return true;
 	}
@@ -277,6 +295,7 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 
 		NodeDescription descr;
 		descr.addr = addr;
+		descr.name = packet.pairingPayload.request.name;
 		descr.isConfigurator = packet.pairingPayload.request.pairAsConfigurator;
 		descr.isReceiver = packet.pairingPayload.request.pairAsReceiver;
 		descr.isTransmitter = packet.pairingPayload.request.pairAsTransmitter;
@@ -294,6 +313,27 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 	return false;
 }
 
+bool MProtocol::incomingStatePacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MStatePacket& s) {
+	Telemetry telem;
+
+	telem.batteryStatus = s.battStatus;
+	telem.driveStatus = s.driveStatus;
+	telem.servoStatus = s.servoStatus;
+	telem.overallStatus = s.droidStatus;
+	telem.driveMode = s.driveMode;
+
+	telem.speed = float(s.speed)/1000.0f;
+	telem.imuPitch = float(s.pitch)*360.0f/1024.0f;
+	telem.imuRoll = float(s.roll)*360.0f/1024.0f;
+	telem.imuHeading = float(s.heading)*360.0f/1024.0f;
+
+	telem.batteryCurrent = float(s.battCurrent)*0.1;
+	telem.batteryVoltage = 3+float(s.battVoltage)*0.1;
+
+	telemetryReceived(addr, seqnum, telem);
+
+	return true;
+}
 
 bool MProtocol::discoverNodes(float timeout) {
 	discoveredNodes_.clear();
@@ -310,7 +350,7 @@ bool MProtocol::discoverNodes(float timeout) {
 	p.pairingPayload.discovery.isTransmitter = (transmitter_ != nullptr);
 	p.pairingPayload.discovery.isReceiver = (receiver_ != nullptr);
 	p.pairingPayload.discovery.isConfigurator = (configurator_ != nullptr);
-	snprintf(p.pairingPayload.discovery.name, NAME_MAXLEN, nodeName_.c_str());
+	p.pairingPayload.discovery.name = nodeName_;
 	sendBroadcastPacket(packet);
 
 	unsigned long msSinceDiscoveryPacket = millis();
@@ -341,6 +381,7 @@ bool MProtocol::pairWith(const NodeDescription& descr) {
 	p.pairingPayload.request.pairAsConfigurator = true;
 	p.pairingPayload.request.pairAsReceiver = (receiver_ != nullptr);
 	p.pairingPayload.request.pairAsTransmitter = (transmitter_ != nullptr);
+	p.pairingPayload.request.name = nodeName_;
 
 	printf("Sending packet of size %d to %s\n", sizeof(packet), descr.addr.toString().c_str());
 	sendPacket(descr.addr, packet);
@@ -429,9 +470,47 @@ void MProtocol::bumpSeqnum() {
 	seqnum_ = (seqnum_ + 1) % MAX_SEQUENCE_NUMBER;
 }
 
+bool MProtocol::sendTelemetry(const Telemetry& telem) {
+	return Protocol::sendTelemetry(telem);
+}
+
+bool MProtocol::sendTelemetry(const NodeAddr& configuratorAddr, const Telemetry& telem) {
+	MPacket packet;
+	packet.source = source_;
+	packet.type = MPacket::PACKET_TYPE_STATE;
+	MStatePacket& s = packet.payload.state;
+
+	s.battStatus = telem.batteryStatus;
+	s.driveStatus = telem.driveStatus;
+	s.servoStatus = telem.servoStatus;
+	s.droidStatus = telem.overallStatus;
+	s.driveMode = telem.driveMode;
+
+	s.speed = int16_t(telem.speed*1000);
+	s.pitch = uint16_t(telem.imuPitch < 0     ? uint16_t(((telem.imuPitch+360)*1024.0)/360.0) : uint16_t((telem.imuPitch*1024.0)/360.0));
+	s.roll = uint16_t(telem.imuRoll < 0       ? uint16_t(((telem.imuRoll+360)*1024.0)/360.0) : uint16_t((telem.imuRoll*1024.0)/360.0));
+	s.heading = uint16_t(telem.imuHeading < 0 ? uint16_t(((telem.imuHeading+360)*1024.0)/360.0) : uint16_t((telem.imuHeading*1024.0)/360.0));
+
+	if(telem.batteryCurrent < 0) s.battCurrent = 0;
+	else if(telem.batteryCurrent > 6.3) s.battCurrent = 63;
+	else s.battCurrent = uint8_t(telem.batteryCurrent / 0.1);
+
+	if(telem.batteryVoltage < 0) s.battVoltage = 0;
+	else if(telem.batteryVoltage > 255) s.battVoltage = 255;
+	else s.battVoltage = uint8_t((telem.batteryVoltage-3) / 0.1);
+
+	return sendPacket(configuratorAddr, packet);
+}
+
 bool MProtocol::isPairedAsConfigurator(const NodeAddr& addr) {
 	for(auto& d: pairedNodes_) {
 		if(d.addr == addr && d.isConfigurator == true) return true;
 	}
 	return false;
+}
+
+void MProtocol::printInfo() {
+	Protocol::printInfo();
+	if(primary_) bb::rmt::printf("This protocol is primary.\n");
+	else bb::rmt::printf("This protocol is secondary.\n");
 }

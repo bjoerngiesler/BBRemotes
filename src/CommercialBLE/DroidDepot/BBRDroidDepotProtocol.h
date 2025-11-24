@@ -26,6 +26,8 @@ public:
 
     virtual bool pairWith(const NodeDescription& node);
 
+    bool transmitCommand( uint8_t *payload, uint8_t len);
+
 protected:
     virtual bool connect(const NodeAddr& addr);
     bool initialWrites();

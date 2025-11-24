@@ -15,6 +15,8 @@ class Protocol;
 //! Abstract transmitter superclass
 class Transmitter {
 public:
+    virtual ~Transmitter() {}
+
     /* 
         Axis handling
 
@@ -52,6 +54,9 @@ public:
     virtual bool setRawAxisValue(uint8_t axis, uint32_t value);
     virtual uint32_t rawAxisValue(uint8_t axis);
 
+    virtual bool isPrimary() { return primary_; }
+    virtual void setPrimary(bool p) { primary_ = p; }
+
     //! Always computed as a percentage from -1 to 1 internally
     virtual float computeInputValue(const AxisMix& mix);
     
@@ -59,6 +64,7 @@ public:
 
 protected:
     std::vector<Axis> axes_;
+    bool primary_;
 };
 
 template <typename P> class TransmitterBase: public Transmitter {

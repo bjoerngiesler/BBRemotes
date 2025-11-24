@@ -12,6 +12,8 @@
 namespace bb {
 namespace rmt {
 
+static const uint8_t SECONDARY_ADD = 19;
+
 /*
 	Pairing packets
 	- Discovery broadcasts are sent by discoverable nodes (i.e. in pairing mode)
@@ -47,7 +49,7 @@ struct __attribute__ ((packed)) MPairingPacket {
 		bool		 isTransmitter  : 1; // byte 4
 		bool		 isReceiver     : 1; // byte 4
 		bool         isConfigurator : 1; // byte 4
-		char         name[NAME_MAXLEN];  // byte 5..14
+		MaxlenString name;           // byte 5..14
 	};
 
 	struct __attribute__ ((packed)) PairingRequest {
@@ -55,6 +57,7 @@ struct __attribute__ ((packed)) MPairingPacket {
 		bool pairAsConfigurator : 1; // byte 5 bit 0
 		bool pairAsTransmitter  : 1; // byte 5 bit 1
 		bool pairAsReceiver     : 1; // byte 5 bit 2
+		MaxlenString name;           // byte 6..15
 	};
 
 	struct __attribute__ ((packed)) PairingReply {
@@ -76,9 +79,10 @@ struct __attribute__ ((packed)) MPairingPacket {
 struct __attribute__ ((packed)) MControlPacket {
 	static const uint8_t BITDEPTH1 = 10;
 	static const uint8_t BITDEPTH2 = 8;
-	static const uint8_t BITDEPTH3 = 1;
-	static const uint8_t BITDEPTH4 = 5;
+	static const uint8_t BITDEPTH3 = 5;
+	static const uint8_t BITDEPTH4 = 1;
 
+	// all of the below are filled by Transmitter::transmit()
 	uint16_t axis0 : BITDEPTH1; // bit 0..9
 	uint16_t axis1 : BITDEPTH1; // bit 10..19
 	uint16_t axis2 : BITDEPTH1; // bit 20..29
@@ -89,23 +93,23 @@ struct __attribute__ ((packed)) MControlPacket {
 	uint8_t axis7  : BITDEPTH2; // bit 66..73
 	uint8_t axis8  : BITDEPTH2; // bit 74..81
 	uint8_t axis9  : BITDEPTH2; // bit 82..89
-	uint8_t axis10 : BITDEPTH3; // bit 90
-	uint8_t axis11 : BITDEPTH3; // bit 91
-	uint8_t axis12 : BITDEPTH3; // bit 92
-	uint8_t axis13 : BITDEPTH3; // bit 93
-	uint8_t axis14 : BITDEPTH3; // bit 94
-	uint8_t axis15 : BITDEPTH3; // bit 95
-	uint8_t axis16 : BITDEPTH3; // bit 96
-	uint8_t axis17 : BITDEPTH3; // bit 97
-	uint8_t axis18 : BITDEPTH4; // bit 98..102
+	uint8_t axis10 : BITDEPTH3; // bit 90..94
+	uint8_t axis11 : BITDEPTH4; // bit 95
+	uint8_t axis12 : BITDEPTH4; // bit 96
+	uint8_t axis13 : BITDEPTH4; // bit 97
+	uint8_t axis14 : BITDEPTH4; // bit 98
+	uint8_t axis15 : BITDEPTH4; // bit 99
+	uint8_t axis16 : BITDEPTH4; // bit 100
+	uint8_t axis17 : BITDEPTH4; // bit 101
+	uint8_t axis18 : BITDEPTH4; // bit 102
 	bool primary    : 1; // bit 103
 
 	void setAxis(uint8_t num, float value, Unit unit=UNIT_UNITY_CENTERED) {
 		uint16_t multiplier = 0;
 		if(num < 5) multiplier = (1<<BITDEPTH1)-1;
 		else if(num<10) multiplier = (1<<BITDEPTH2)-1;
-		else if(num<18) multiplier = (1<<BITDEPTH3)-1;
-		else if(num == 18) multiplier = (1<<BITDEPTH4)-1;
+		else if(num==10) multiplier = (1<<BITDEPTH3)-1;
+		else if(num<=18) multiplier = (1<<BITDEPTH4)-1;
 
 		switch(unit) {
 		case UNIT_DEGREES:
@@ -159,8 +163,8 @@ struct __attribute__ ((packed)) MControlPacket {
 		float multiplier = 0;
 		if(num < 5) multiplier = (1<<BITDEPTH1)-1;
 		else if(num<10) multiplier = (1<<BITDEPTH2)-1;
-		else if(num<18) multiplier = (1<<BITDEPTH3)-1;
-		else if(num == 18) multiplier = (1<<BITDEPTH4)-1;
+		else if(num==10) multiplier = (1<<BITDEPTH3)-1;
+		else if(num<=18) multiplier = (1<<BITDEPTH4)-1;
 
 		float value;
 		switch(num) {
@@ -212,28 +216,13 @@ struct __attribute__ ((packed)) MControlPacket {
 };     // 13 bytes long
 
 struct __attribute__ ((packed)) MStatePacket {
-	enum StatusType {
-		STATUS_OK		= 0,
-		STATUS_DEGRADED	= 1,
-		STATUS_ERROR	= 2,
-		STATUS_NA       = 3 // not applicable - doesn't exist
-	};
-
-	enum DriveMode {
-		DRIVE_OFF        = 0,
-		DRIVE_VEL        = 1,
-		DRIVE_AUTO_POS   = 2,
-		DRIVE_POS        = 3,
-		DRIVE_AUTONOMOUS = 4
-	};
-
-	StatusType battStatus 	: 2; // bit 0..1
-	StatusType driveStatus 	: 2; // bit 2..3
-	StatusType servoStatus  : 2; // bit 4..5
-	StatusType droidStatus  : 2; // bit 6..7
+	Telemetry::SubsysStatus battStatus 	: 2; // bit 0..1
+	Telemetry::SubsysStatus driveStatus 	: 2; // bit 2..3
+	Telemetry::SubsysStatus servoStatus  : 2; // bit 4..5
+	Telemetry::SubsysStatus droidStatus  : 2; // bit 6..7
 
 	// byte 2
-	DriveMode driveMode     : 3; // bit 8..10
+	Telemetry::DriveMode driveMode     : 3; // bit 8..10
 	uint8_t reserved1       : 5; // bit 11..15
 
 	// byte 3
@@ -270,7 +259,7 @@ struct __attribute__ ((packed)) MConfigPacket {
 
 	struct __attribute__ ((packed)) NamePacket {
 		uint8_t index;
-		char name[NAME_MAXLEN];
+		MaxlenString name;
 	};
 
 	struct __attribute__ ((packed)) MixPacket {
@@ -318,7 +307,6 @@ static void mixPacketToAxisMix(const MConfigPacket::MixPacket& mp, InputID& inpu
 }
 
 struct __attribute__ ((packed)) MPacket {
-
 	enum PacketType {
 		PACKET_TYPE_CONTROL  = 0,
 		PACKET_TYPE_STATE    = 1,
@@ -333,9 +321,10 @@ struct __attribute__ ((packed)) MPacket {
 		PACKET_SOURCE_TEST_ONLY      = 3
 	};
 
-	PacketType type             : 2;
-	PacketSource source         : 2;
-	mutable uint8_t seqnum      : 3; // automatically set by Runloop
+	// All of these 
+	PacketType type             : 2; // set by transmitter / receiver / whoever creates the packet
+	PacketSource source         : 2; // set by MProtocol::sendPacket() or subclass
+	mutable uint8_t seqnum      : 3; // set by MProtocol::sendPacket() or subclass
 	uint8_t reserved            : 1; 
 
 	union {

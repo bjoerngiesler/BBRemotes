@@ -27,8 +27,6 @@ public:
 
     virtual bool syncInputs(const NodeDescription& descr);
 
-    virtual bool connect();
-
     struct Command {
         uint8_t byte1, byte2, byte3;
     };

@@ -12,6 +12,7 @@ public:
     static const MixManager InvalidManager;
 
     virtual uint8_t numMixes() const;
+    const std::map<InputID,AxisMix>& mixes();
     virtual bool hasMixForInput(InputID input) const;
     virtual const AxisMix& mixForInput(uint8_t index) const;
     virtual bool setMix(InputID input, const AxisMix& mix);

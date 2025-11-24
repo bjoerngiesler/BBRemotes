@@ -72,13 +72,6 @@ bool SpheroProtocol::pairWith(const NodeDescription& descr) {
     return Protocol::pairWith(descr);
 }
 
-bool SpheroProtocol::connect() {
-    if(pairedNodes_.size() == 0) {
-        Serial.printf("No paired receivers -- cannot connect!\n");
-        return false;
-    }
-    return connect(pairedNodes_[0].addr);
-}
 
 bool SpheroProtocol::connect(const NodeAddr& addr) {
     if(pClient_ == nullptr) {

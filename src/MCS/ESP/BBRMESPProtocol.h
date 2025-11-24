@@ -21,6 +21,8 @@ public:
     virtual ProtocolType protocolType() { return MONACO_ESPNOW; }
 
     virtual bool init(const std::string& nodeName);
+    virtual bool deserialize(StorageBlock& block);
+
 
     virtual bool discoverNodes(float timeout = 5);
 
@@ -31,8 +33,8 @@ public:
 
     virtual bool step();
 
-    virtual bool sendPacket(const NodeAddr& addr, const MPacket& packet, bool bumpSeqnum=true);
-    virtual bool sendBroadcastPacket(const MPacket& packet, bool bumpSeqnum=true);
+    virtual bool sendPacket(const NodeAddr& addr, MPacket& packet, bool bumpSeqnum=true);
+    virtual bool sendBroadcastPacket(MPacket& packet, bool bumpSeqnum=true);
 
     virtual bool incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MPairingPacket& packet);
 

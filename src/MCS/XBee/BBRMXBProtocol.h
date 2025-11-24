@@ -19,12 +19,11 @@ public:
 
     virtual ProtocolType protocolType() { return MONACO_XBEE; }
 
-	void setUart(HardwareSerial* uart);
 	void setChannel(uint16_t channel);
 	void setPAN(uint16_t pan);
 
-    virtual bool init(const std::string& nodeName) { return init(nodeName, DEFAULT_CHAN, DEFAULT_PAN); }
-    virtual bool init(const std::string& nodeName, uint16_t chan, uint16_t pan);
+    virtual bool init(const std::string& nodeName) { return init(nodeName, DEFAULT_CHAN, DEFAULT_PAN, &Serial1); }
+    virtual bool init(const std::string& nodeName, uint16_t chan, uint16_t pan, HardwareSerial *uart);
 
 	virtual bool acceptsPairingRequests() { return true; }
 
@@ -32,8 +31,8 @@ public:
 
     virtual bool step();
 
-    virtual bool sendPacket(const NodeAddr& addr, const MPacket& packet, bool bumpSeqnum=true);
-    virtual bool sendBroadcastPacket(const MPacket& packet, bool bumpSeqnum=true);
+    virtual bool sendPacket(const NodeAddr& addr, MPacket& packet, bool bumpSeqnum=true);
+    virtual bool sendBroadcastPacket(MPacket& packet, bool bumpSeqnum=true);
 
     virtual bool waitForPacket(std::function<bool(const MPacket&, const NodeAddr&)> fn, 
                                NodeAddr& addr, MPacket& packet, 
@@ -74,6 +73,7 @@ protected:
 	int currentBPS_;
 	bool apiMode_;
 	uint8_t chan_, pan_;
+	bool initialized_;
 
 	NodeAddr hwAddress_;
 

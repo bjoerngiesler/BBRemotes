@@ -21,7 +21,7 @@ class DroidDepotTransmitter: public TransmitterBase<DroidDepotProtocol> {
 public:
     DroidDepotTransmitter(DroidDepotProtocol *proto);
 
-    bool canAddAxes() { return true; }
+    bool canAddAxes() { return false; }
 
     virtual uint8_t numInputs();
     virtual const std::string& inputName(uint8_t input);

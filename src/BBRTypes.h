@@ -8,18 +8,8 @@
 
 namespace bb {
 namespace rmt {
-  
-enum ProtocolType {
-    MONACO_XBEE       = 'X',
-    MONACO_ESPNOW     = 'E',
-    MONACO_BLE        = 'B',
-    MONACO_UDP        = 'U',
-    SPHERO_BLE        = 'S',
-    DROIDDEPOT_BLE    = 'D',
-    SPEKTRUM_DSSS     = 'd',
-    INVALID_PROTOCOL  = '-'
-};
 
+// Sigh. That we need to do this every. single. time.
 static int printfFinal(const char* str) {
     Serial.print(str);
     return strlen(str);
@@ -43,8 +33,86 @@ static int printf(const char* format, ...) {
     return retval;
 }
 
+  
+enum ProtocolType {
+    MONACO_XBEE       = 'X',
+    MONACO_ESPNOW     = 'E',
+    MONACO_BLE        = 'B',
+    MONACO_UDP        = 'U',
+    SPHERO_BLE        = 'S',
+    DROIDDEPOT_BLE    = 'D',
+    SPEKTRUM_DSSS     = 'd',
+    INVALID_PROTOCOL  = '-'
+};
 
 static const uint8_t NAME_MAXLEN = 10;
+
+struct __attribute__ ((packed)) MaxlenString {
+    char buf[NAME_MAXLEN];
+    void zero() {
+        for(unsigned int i=0; i<NAME_MAXLEN; i++) buf[i]=0;
+    }
+    MaxlenString& operator=(const std::string& str) {
+        unsigned int l = str.size();
+        for(unsigned int i=0; i<NAME_MAXLEN; i++) {
+            if(i<l) buf[i]=str[i];
+            else buf[i]=0;
+        }
+        return *this;
+    }
+    MaxlenString& operator=(const String& str) {
+        unsigned int l = str.length();
+        for(unsigned int i=0; i<NAME_MAXLEN; i++) {
+            if(i<l) buf[i]=str[i];
+            else buf[i]=0;
+        }
+        return *this;
+    }
+    MaxlenString& operator=(const char *str) {
+        unsigned int l = strlen(str);
+        for(unsigned int i=0; i<NAME_MAXLEN; i++) {
+            if(i<l) buf[i]=str[i];
+            else buf[i]=0;
+        }
+        return *this;
+    }
+    operator std::string() const {
+        char retbuf[NAME_MAXLEN+1];
+        for(unsigned int i=0; i<NAME_MAXLEN; i++) {
+            retbuf[i]=buf[i];
+        }
+        retbuf[NAME_MAXLEN] = 0;
+
+        return std::string(retbuf);
+    }
+    operator String() const {
+        char retbuf[NAME_MAXLEN+1];
+        for(unsigned int i=0; i<NAME_MAXLEN; i++) {
+            retbuf[i]=buf[i];
+        }
+        retbuf[NAME_MAXLEN] = 0;
+
+        return String(retbuf);
+    }
+
+    bool operator==(const std::string& other) const {
+        unsigned int l = other.size();
+        for(unsigned int i=0; i<NAME_MAXLEN; i++) {
+            if(i<l && buf[i]!=other[i]) return false;
+            else if(i>=l && buf[i]!=0) return false;
+        }
+        return true;
+    }
+    bool operator==(const String& other) const {
+        unsigned int l = other.length();
+        for(unsigned int i=0; i<NAME_MAXLEN; i++) {
+            if(i<l && buf[i]!=other[i]) return false;
+            else if(i>=l && buf[i]!=0) return false; 
+        }
+        return true;
+    }
+};
+
 typedef uint8_t InputID;
 typedef uint8_t AxisID;
 static const InputID INPUT_INVALID = 255;
@@ -111,7 +179,7 @@ struct __attribute__ ((packed)) NodeAddr {
             fromMACAddress(m);
         } else if(str.length() == 17 && str[8] == ':' && str[2] != ':') {
             uint32_t hi, lo;
-            sscanf(str.c_str(), "%x:%x", &hi, &lo);
+            sscanf(str.c_str(), "%lx:%lx", &hi, &lo);
             fromXBeeAddress(hi, lo);
         } else {
             for(int i=0; i<8; i++) byte[i] = 0;
@@ -123,7 +191,7 @@ struct __attribute__ ((packed)) NodeAddr {
         if(byte[6] == 0 && byte[7] == 0) {
             sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", byte[0], byte[1], byte[2], byte[3], byte[4], byte[5]);
         } else {
-            sprintf(buf, "%0x:%0x", addrHi(), addrLo());
+            sprintf(buf, "%lx:%lx", addrHi(), addrLo());
         }
         return buf;
     }
@@ -139,29 +207,11 @@ static bool operator<(const NodeAddr& a1, const NodeAddr& a2) {
 // NodeDescription - 20 bytes
 struct __attribute__ ((packed)) NodeDescription {
     NodeAddr addr;               // byte 0..7
-    char name_[NAME_MAXLEN];     // byte 8..17
+    MaxlenString name;           // byte 8..17
     bool isTransmitter     : 1;  // byte 18 bit 0
     bool isReceiver        : 1;  // byte 18 bit 1
     bool isConfigurator    : 1;  // byte 18 bit 2
     uint16_t protoSpecific : 13; // byte 18 bit 3..7, byte 19
-
-    void setName(const std::string& n) {
-        memset(name_, 0, 10);
-        for(uint8_t i=0; i<n.length() && i<NAME_MAXLEN; i++) name_[i] = n[i];
-    }
-    void setName(const char* buf) {
-        memset(name_, 0, 10);
-        for(uint8_t i=0; i<NAME_MAXLEN; i++) {
-            if(buf[i] == '\0') break;
-            name_[i] = buf[i];
-        } 
-    }
-    std::string getName() const {
-        char buf[NAME_MAXLEN+1];
-        memset(buf, 0, NAME_MAXLEN+1);
-        memcpy(buf, name_, NAME_MAXLEN);
-        return std::string(buf);
-    }
 };
 
 // Some standard input names. Of course you can define your own but these help to programmatically decide what to map to what.
@@ -309,7 +359,8 @@ public:
     }
 };
 
-struct __attribute__ ((packed)) InputMixMapping {
+struct __attribute__ ((packed)) NodeInputMixMapping {
+    NodeAddr addr;
     uint8_t input;
     AxisMix mix;
 };
@@ -350,6 +401,106 @@ static float unitToNormed(float val, Unit unit) {
     }
     return val;
 }
+
+struct Telemetry {
+    enum SubsysStatus {
+		STATUS_OK		= 0,
+		STATUS_DEGRADED	= 1,
+		STATUS_ERROR	= 2,
+		STATUS_NA       = 3 // not applicable - doesn't exist
+    };
+	enum DriveMode {
+		DRIVE_OFF        = 0,
+		DRIVE_VEL        = 1,
+		DRIVE_AUTO_POS   = 2,
+		DRIVE_POS        = 3,
+		DRIVE_AUTONOMOUS = 4,
+        DRIVE_CUSTOM1    = 5,
+        DRIVE_CUSTOM2    = 6,
+        DRIVE_CUSTOM3    = 7
+	};
+
+    SubsysStatus batteryStatus, driveStatus, servoStatus, overallStatus;
+    DriveMode driveMode;
+    float speed;                         // Unit: m/s
+    float imuPitch, imuRoll, imuHeading; // Unit: degrees -- leave 0 if not applicable
+    float batteryCurrent;                // Unit: amps
+    float batteryVoltage;                // Unit: volts
+};
+
+/*
+    Storage -- some thoughts on memory. 
+    If possible we want to be able to store the maximum capability of the remotes. We need
+    to store axis input mappings, paired nodes, the type of protocol we are using, and
+    maybe some protocol specific things (although we have gotten by without them so far)
+    like Wifi or XBee channel, PAM, blablabla.
+
+    The number of paired nodes is not limited in the code, so can theoretically grow out of
+    bounds, but it's hard to imagine a system where one node is paired to more than a handful
+    of others. So storing 8 seems like a good practical maximum.
+
+    The protocol type is just one byte, it's negligible.
+
+    The protocol specific block is set to 100 bytes for now, anything we can immediately
+    think of should fit well into that block (e.g. max length of Wifi SSID is 32 characters,
+    max length of WPA-2 PSK is 63 characters, leaving 5 bytes for channel and other stuff).
+
+    The number of axis input mappings is limited by the number of inputs (we chose an uint8 
+    as input id for protocol bandwidth reasons, giving 254 max inputs) because there can only
+    be one mapping per input. If we want to be able to store all 254, this adds up to a CHUNK 
+    of memory. How many we actually need is up to the application, but a typical Monaco remote
+    receiver will get up to 38 axes. With one-to-one mixes only, that's the number of input
+    mappings you need. 
+     
+    Let's look at what is available on typical microcontrollers.
+    - The SAMD21, used on the MKR Wifi 1010, has up to 16kb of non-volatile flash. Check. 
+      We only allow two stored protocols here, but the full set of mappings. ATM these are
+      used in-droid, which means we typically only store one protocol anyway, if at all.
+    - The ESP32 can go much higher, typically megabytes in size. Check.
+      These are also used in the remotes, where we want to store several different configurations,
+      so we allow for 16 of those, netting roughly 57kb of Flash.
+    - The ATMEGA Arduinos are much worse, at 4096 bytes for the Mega 2560, 1024 bytes for 
+      the 328P Uno, and even down to 512 bytes for the Lilypad. For those, we limit the
+      max node count to 4 and the max number of mappings to 32, netting 597 bytes. Lilypad
+      is unsupported at the moment. These also only get one stored protocol.
+*/
+struct __attribute__ ((packed)) StorageBlock {
+#if defined(ARDUINO_XIAO_ESP32S3) || defined(ARDUINO_XIAO_ESP32C3) || defined(ARDUINO_ADAFRUIT_QTPY_ESP32S2) || defined(ARDUINO_SAMD_MKRWIFI1010)
+    static const uint8_t MAX_NUM_NODES = 8;
+    static const uint8_t MAX_NUM_MAPPINGS = 254;
+    // Memory use: 5617 bytes
+#elif defined(ARDUINO_AVR_LILYPAD) || defined(ARDUINO_AVR_LILYPAD_USB)
+    static const uint8_t MAX_NUM_NODES = 2;
+    static const uint8_t MAX_NUM_MAPPINGS = 16;
+    // Memory use: 359 bytes
+#else
+    static const uint8_t MAX_NUM_NODES = 4;
+    static const uint8_t MAX_NUM_MAPPINGS = 48;
+    // Memory use: 815 bytes
+#endif
+
+    MaxlenString storageName;
+    MaxlenString nodeName;
+    ProtocolType type;
+    uint8_t numPairedNodes;
+    NodeDescription pairedNodes[MAX_NUM_NODES]; // 20 bytes each = 160 bytes
+    uint8_t numMappings;
+    NodeInputMixMapping mapping[MAX_NUM_MAPPINGS];  // 21 bytes each = 5334 bytes
+    uint8_t protocolSpecific[100];              // 100 bytes
+}; 
+
+struct __attribute__ ((packed)) ProtocolStorage {
+    uint8_t num;
+    MaxlenString last;
+#if defined(ARDUINO_XIAO_ESP32S3) || defined(ARDUINO_XIAO_ESP32C3) || defined(ARDUINO_ADAFRUIT_QTPY_ESP32S2) 
+    static const uint8_t MAX_NUM_PROTOCOLS = 16; // 44936 bytes
+#elif defined(ARDUINO_SAMD_MKRWIFI1010)
+    static const uint8_t MAX_NUM_PROTOCOLS = 2;
+#else
+    static const uint8_t MAX_NUM_PROTOCOLS = 1;
+#endif
+    StorageBlock blocks[MAX_NUM_PROTOCOLS];
+};
 
 }; // rmt
 }; // bb

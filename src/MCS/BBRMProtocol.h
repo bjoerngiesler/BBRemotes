@@ -18,6 +18,9 @@ public:
 
     virtual ProtocolType protocolType() { return INVALID_PROTOCOL; }
 
+    virtual bool serialize(StorageBlock& block);
+    virtual bool deserialize(StorageBlock& block);
+
     virtual Transmitter* createTransmitter(uint8_t transmitterType=0);
     virtual Receiver* createReceiver();
 
@@ -32,12 +35,20 @@ public:
     virtual bool retrieveMixes(const NodeDescription& descr);
 
     virtual bool step();
-    virtual bool sendPacket(const NodeAddr& addr, const MPacket& packet, bool bumpSeqnum=true) = 0;
-    virtual bool sendBroadcastPacket(const MPacket& packet, bool bumpSeqnum=true) = 0;
+    virtual bool sendPacket(const NodeAddr& addr, MPacket& packet, bool bumpSeqnum=true) = 0;
+    virtual bool sendBroadcastPacket(MPacket& packet, bool bumpSeqnum=true) = 0;
     virtual void bumpSeqnum();
+    virtual uint8_t seqnum() { return seqnum_; }
 
     void setPacketSource(MPacket::PacketSource src) { source_ = src; }
 	MPacket::PacketSource packetSource() { return source_; }
+
+    bool sendTelemetry(const Telemetry& telem);
+    bool sendTelemetry(const NodeAddr& configuratorAddr, const Telemetry& telem);
+
+    void setTransmittersArePrimary(bool p) { primary_ = p; if(transmitter_ != nullptr) transmitter_->setPrimary(p); }
+    bool areTransmittersPrimary() { return primary_; }
+
 	void setBuilderId(uint8_t builderId) { builderId_ = builderId; }
 	uint8_t builderId() { return builderId_; }
 	void setStationId(uint8_t stationId) { stationId_ = stationId; }
@@ -50,9 +61,12 @@ public:
     virtual bool incomingPacket(const NodeAddr& addr, const MPacket& packet);
 	virtual bool incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, MConfigPacket& packet);
 	virtual bool incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MPairingPacket& packet);
+	virtual bool incomingStatePacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MStatePacket& packet);
     virtual bool waitForPacket(std::function<bool(const MPacket&, const NodeAddr& )> fn, 
                                NodeAddr& addr, MPacket& packet, 
                                bool handleOthers, float timeout) = 0;
+
+    virtual void printInfo();
 
 protected:
     bool isPairedAsConfigurator(const NodeAddr& addr);
@@ -60,7 +74,7 @@ protected:
     uint8_t builderId_, stationId_, stationDetail_;
     uint32_t pairingSecret_;
 	MPacket::PacketSource source_;
-    uint8_t seqnum_;
+    bool primary_;
 };
 
 }; // rmt

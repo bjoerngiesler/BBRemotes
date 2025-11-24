@@ -18,6 +18,7 @@ public:
     virtual const std::string& inputName(uint8_t input);
 
     virtual bool transmit();
+    virtual bool transmitRawControlPacket(const MControlPacket& packet);
 
     virtual bool requiresConnection() { return false; }
 };

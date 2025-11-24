@@ -10,13 +10,39 @@ using namespace bb::rmt;
 BLEProtocol::BLEProtocol() {
     pBLEScan_ = nullptr;
     myDevice_ = nullptr;
+    pClient_ = nullptr;
+    connected_ = false;
+    initialized_ = false;
 }
 
 bool BLEProtocol::init(const std::string& nodeName) {
+    if(initialized_) {
+        bb::rmt::printf("Already initialized\n");
+        return false;
+    }
+
+    bb::rmt::printf("Initializing BLE device\n");
     BLEDevice::init(nodeName);
     nodeName_ = nodeName;
+    initialized_ = true;
     return true;
 }
+
+void BLEProtocol::deinit() {
+	if(!initialized_) {
+		printf("Not initialized\n");
+		return;
+	}
+
+    pClient_ = nullptr;
+    myDevice_ = nullptr;
+    pBLEScan_ = nullptr;
+    connected_ = false;
+    BLEDevice::deinit();
+
+	initialized_ = false;
+}
+
 
 bool BLEProtocol::discoverNodes(float timeout) {
     discoveredNodes_.clear();
@@ -39,13 +65,22 @@ void BLEProtocol::onResult(BLEAdvertisedDevice advertisedDevice) {
 
         NodeDescription descr;
         descr.addr.fromMACAddress(*addr);
-        descr.setName(advertisedDevice.getName());
+        descr.name = advertisedDevice.getName();
         descr.isReceiver = true;
         descr.isConfigurator = false;
         descr.isTransmitter = false;
         discoveredNodes_.push_back(descr);
     }
 }
+
+bool BLEProtocol::connect() {
+    if(pairedNodes_.size() == 0) {
+        Serial.printf("No paired receivers -- cannot connect!\n");
+        return false;
+    }
+    return connect(pairedNodes_[0].addr);
+}
+
 
 void BLEProtocol::onConnect(BLEClient *pClient) {
     Serial.printf("Connected\n");

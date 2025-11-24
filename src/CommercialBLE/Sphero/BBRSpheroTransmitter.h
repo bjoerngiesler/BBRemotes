@@ -30,6 +30,8 @@ public:
     virtual bool receiverSideMapping() { return false; }
     virtual bool syncReceiverSideMapping() { return false; }
 
+    
+
 protected:
     bool sleep(bool onoff);
 

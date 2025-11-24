@@ -51,6 +51,32 @@ bool MESPProtocol::init(const std::string& nodeName) {
     return true;
 }
 
+bool MESPProtocol::deserialize(StorageBlock& block) {
+	source_ = (MPacket::PacketSource)block.protocolSpecific[0];
+	primary_ = (block.protocolSpecific[1] != 0);
+	bool retval = MProtocol::deserialize(block);
+    if(retval == false) {
+        bb::rmt::printf("Error deserializing\n");
+        return false;
+    }
+
+    bb::rmt::printf("Adding all node addresses\n");
+    for(auto& n: pairedNodes_) {
+        esp_now_peer_info_t peerInfo = {};
+        memcpy(peerInfo.peer_addr, n.addr.byte, 6);
+        peerInfo.channel = 0;  
+        peerInfo.encrypt = false;
+
+        if(esp_now_add_peer(&peerInfo) != ESP_OK) {
+            Serial.printf("Failed to add peer %s\n", n.addr.toString().c_str());
+        } else {
+            Serial.printf("Success adding peer %s\n", n.addr.toString().c_str());
+        }
+    }
+    return retval;
+}
+
+
 bool MESPProtocol::discoverNodes(float timeout) {
     if(!broadcastAdded_) addBroadcastAddress();
     bool res = MProtocol::discoverNodes(timeout);
@@ -100,8 +126,9 @@ bool MESPProtocol::step() {
     return MProtocol::step();
 }
 
-bool MESPProtocol::sendPacket(const NodeAddr& addr, const MPacket& packet, bool bumpS) {
+bool MESPProtocol::sendPacket(const NodeAddr& addr, MPacket& packet, bool bumpS) {
     packet.seqnum = seqnum_;
+    packet.source = source_;
     packet.crc = packet.calculateCRC();
 
     bool retval = (esp_now_send(addr.byte, (uint8_t*)&packet, sizeof(packet)) == ESP_OK);
@@ -109,7 +136,7 @@ bool MESPProtocol::sendPacket(const NodeAddr& addr, const MPacket& packet, bool 
     return retval;
 }
 
-bool MESPProtocol::sendBroadcastPacket(const MPacket& packet, bool bumpS) {
+bool MESPProtocol::sendBroadcastPacket(MPacket& packet, bool bumpS) {
     if(sendPacket(broadcastAddr, packet, bumpS) == true) {
         return true;
     } else {
