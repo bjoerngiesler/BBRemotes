@@ -6,7 +6,7 @@ using namespace bb::rmt;
 
 bool MReceiver::incomingControlPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MControlPacket& packet) {
     if(dataReceivedCB_ != nullptr) dataReceivedCB_(addr, seqnum, &packet, sizeof(packet));
-    //if(packet.primary) bb::rmt::printf("Primary\n"); else bb::rmt::printf("Secondary\n");
+
     for(uint8_t i = 0; i<inputs_.size(); i++) {
         if(!hasMixForInput(i)) continue;
         Input& inp = inputs_[i];
