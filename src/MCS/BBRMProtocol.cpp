@@ -62,7 +62,7 @@ uint8_t MPacket::calculateCRC() const {
 	return calcCRC7((const uint8_t*)this, sizeof(MPacket)-1);
 }
 
-MProtocol::MProtocol() {
+MProtocol::MProtocol(): packetReceivedCB_(nullptr) {
 	pairingSecret_ = 0xbabeface;
     seqnum_ = 0;
 }
@@ -100,6 +100,8 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 	MConfigPacket::ConfigReplyType reply = packet.payload.config.reply;
 	MPacket packet2 = packet;
 
+	if(packetReceivedCB_ != nullptr) packetReceivedCB_(addr, packet);
+
 	switch(packet.type) {
 	case MPacket::PACKET_TYPE_CONTROL:
 		if(receiver_ == nullptr) {
@@ -112,10 +114,7 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 		break;
 
 	case MPacket::PACKET_TYPE_STATE:
-		if(receiver_ == nullptr) {
-			printf("Got state packet from %s but we are not a receiver.\n", addr.toString().c_str());
-			return false;
-		}
+		//printf("Incoming state packet from %s\n", addr.toString().c_str());
 		//return ((MReceiver*)receiver_)->incomingStatePacket(addr, packet.source, packet.seqnum, packet.payload.state);
 		return incomingStatePacket(addr, packet.source, packet.seqnum, packet.payload.state);
 		break;
@@ -499,6 +498,7 @@ bool MProtocol::sendTelemetry(const NodeAddr& configuratorAddr, const Telemetry&
 	else if(telem.batteryVoltage > 255) s.battVoltage = 255;
 	else s.battVoltage = uint8_t((telem.batteryVoltage-3) / 0.1);
 
+	//bb::rmt::printf("Sending telemetry to %s\n", configuratorAddr.toString().c_str());
 	return sendPacket(configuratorAddr, packet);
 }
 

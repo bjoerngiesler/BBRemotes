@@ -44,7 +44,7 @@ public:
 	MPacket::PacketSource packetSource() { return source_; }
 
     bool sendTelemetry(const Telemetry& telem);
-    bool sendTelemetry(const NodeAddr& configuratorAddr, const Telemetry& telem);
+    virtual bool sendTelemetry(const NodeAddr& configuratorAddr, const Telemetry& telem);
 
     void setTransmittersArePrimary(bool p) { primary_ = p; if(transmitter_ != nullptr) transmitter_->setPrimary(p); }
     bool areTransmittersPrimary() { return primary_; }
@@ -57,6 +57,10 @@ public:
 	uint8_t stationDetail() { return stationDetail_; }
 
     void setPairingSecret(uint32_t secret) { pairingSecret_ = secret; }
+
+    void setPacketReceivedCB(std::function<void(const NodeAddr&, const MPacket&)> cb) { packetReceivedCB_ = cb; }
+
+    bool receiveFromSerial(HardwareSerial *serial);
 
     virtual bool incomingPacket(const NodeAddr& addr, const MPacket& packet);
 	virtual bool incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, MConfigPacket& packet);
@@ -71,10 +75,13 @@ public:
 protected:
     bool isPairedAsConfigurator(const NodeAddr& addr);
 
+    std::function<void(const NodeAddr&, const MPacket&)> packetReceivedCB_;
     uint8_t builderId_, stationId_, stationDetail_;
     uint32_t pairingSecret_;
 	MPacket::PacketSource source_;
     bool primary_;
+
+    std::string serialRecStr_;
 };
 
 }; // rmt
