@@ -3,6 +3,7 @@
 
 #include "MCS/ESP/BBRMESPProtocol.h"
 #include "MCS/XBee/BBRMXBProtocol.h"
+#include "MCS/Sat/BBRMSatProtocol.h"
 #include "CommercialBLE/DroidDepot/BBRDroidDepotProtocol.h"
 #include "CommercialBLE/Sphero/BBRSpheroProtocol.h"
 

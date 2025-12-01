@@ -3,6 +3,7 @@
 #include "CommercialBLE/Sphero/BBRSpheroProtocol.h"
 #include "MCS/ESP/BBRMESPProtocol.h"
 #include "MCS/XBee/BBRMXBProtocol.h"
+#include "MCS/Sat/BBRMSatProtocol.h"
 
 using namespace bb;
 using namespace rmt;
@@ -30,6 +31,10 @@ Protocol* ProtocolFactory::getOrCreateProtocol(ProtocolType type) {
     if(proto != nullptr) return proto;
 
     switch(type) {
+    case MONACO_SAT:
+        proto = new MSatProtocol;
+        break;
+
     case MONACO_XBEE:
         proto = new MXBProtocol;
         break;
