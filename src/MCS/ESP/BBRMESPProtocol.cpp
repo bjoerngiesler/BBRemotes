@@ -120,6 +120,7 @@ bool MESPProtocol::step() {
         AddrAndPacket ap = packetQueue_.front();
         packetQueue_.pop_front();
         packetQueueMutex_.unlock();
+        //printf("Packet from %s type %d\n", ap.addr.toString().c_str(), ap.packet.type);
         incomingPacket(ap.addr, ap.packet);
     }
 
@@ -163,6 +164,9 @@ bool MESPProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSo
         packet.type == packet.PAIRING_DISCOVERY_REPLY) &&
         acceptsPairingRequests()) {       
         //Serial.printf("Received discovery broadcast. Temporarily adding %s as a peer.\n", addr.toString().c_str());
+        addTempPeer(addr);
+    } else if((packet.type == packet.PAIRING_REQUEST)) {
+        Serial.printf("Received pairing packet. Temporarily adding %s as a peer.\n", addr.toString().c_str());
         addTempPeer(addr);
     }
 
