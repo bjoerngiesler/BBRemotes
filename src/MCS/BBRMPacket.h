@@ -353,6 +353,9 @@ struct MPacketFrame {
 	uint8_t crc;
 };
 
+std::string serializePacket(const MPacket& packet);
+bool deserializePacket(MPacket &packet, const std::string& str);
+
 }; // namespace rmt
 }; // namespace bb
 
