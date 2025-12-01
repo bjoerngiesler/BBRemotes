@@ -5,8 +5,8 @@
 #include <vector>
 #include "../BBRMProtocol.h"
 
-#define DEFAULT_CHAN    0x14   // Best channels for non-overlap with Wifi: 0x0d, 0x13, 0x19
-#define DEFAULT_PAN     0x3332
+#define DEFAULT_RCHAN    0x0d   // Best channels for non-overlap with Wifi: 0x0d, 0x13, 0x19
+#define DEFAULT_RPAN     0x3332
 
 #define DEFAULT_BPS     9600
 	
@@ -22,7 +22,7 @@ public:
 	void setChannel(uint16_t channel);
 	void setPAN(uint16_t pan);
 
-    virtual bool init(const std::string& nodeName) { return init(nodeName, DEFAULT_CHAN, DEFAULT_PAN, &Serial1); }
+    virtual bool init(const std::string& nodeName) { return init(nodeName, DEFAULT_RCHAN, DEFAULT_RPAN, &Serial1); }
     virtual bool init(const std::string& nodeName, uint16_t chan, uint16_t pan, HardwareSerial *uart);
 
 	virtual bool acceptsPairingRequests() { return true; }
