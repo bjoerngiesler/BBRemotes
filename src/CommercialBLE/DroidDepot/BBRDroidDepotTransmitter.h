@@ -11,26 +11,26 @@
 #include <BLEAdvertisedDevice.h>
 
 #include "BBRTransmitter.h"
+#include "BBRDroidDepotProtocol.h"
 
 namespace bb {
 namespace rmt {
-
 class DroidDepotProtocol;
 
+//! Droid Depot BLE Transmitter
 class DroidDepotTransmitter: public TransmitterBase<DroidDepotProtocol> {
 public:
     DroidDepotTransmitter(DroidDepotProtocol *proto);
 
-    bool canAddAxes() { return false; }
-
-    virtual uint8_t numInputs();
-    virtual const std::string& inputName(uint8_t input);
+    bool canAddAxes() { return true; }
 
     virtual bool receiverSideMapping() { return false; }
     virtual bool syncReceiverSideMapping() {return true; }
     virtual bool transmit();
    
 protected:
+    float inputVals_[DroidDepotProtocol::NUM_INPUTS];
+
     void initialWrites();
 
     std::vector<uint8_t> axisValues_;

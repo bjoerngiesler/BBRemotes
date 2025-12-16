@@ -9,6 +9,7 @@ namespace rmt {
 
 class MProtocol;
 
+//! Monaco Protocol Transmitter
 class MTransmitter: public TransmitterBase<MProtocol> {
 public:
     MTransmitter(MProtocol* proto);

@@ -13,5 +13,12 @@
 #include "BBRProtocol.h"
 #include "BBRProtocolFactory.h"
 
+/**
+ * @mainpage
+ * 
+ * This is the reference documentation for the Bavarian Builders' Remote Control library. The library lives at https://github.com/bjoerngiesler/BBRemotes, 
+ * please check there for source code, concept documentation, and examples.
+ *
+ */
 
 #endif // LIBBBREMOTES_H

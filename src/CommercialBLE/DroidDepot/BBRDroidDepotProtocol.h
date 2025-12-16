@@ -9,6 +9,8 @@
 
 namespace bb {
 namespace rmt {
+
+//! Droid Depot BLE Protocol
 class DroidDepotProtocol: public BLEProtocol {
 public:
     DroidDepotProtocol();
@@ -28,9 +30,26 @@ public:
 
     bool transmitCommand( uint8_t *payload, uint8_t len);
 
-protected:
-    virtual bool connect(const NodeAddr& addr);
+    virtual uint8_t numInputs(const NodeAddr& addr);
+    virtual const std::string& inputName(const NodeAddr& addr, uint8_t input);
+    virtual uint8_t inputWithName(const NodeAddr& addr, const std::string& name);
+
+    enum Inputs {
+        INPUT_SPEED       = 0,
+        INPUT_TURN        = 1,
+        INPUT_DOME        = 2,
+        INPUT_SOUND1      = 3,
+        INPUT_SOUND2      = 4,
+        INPUT_SOUND3      = 5,
+        INPUT_ACCESSORY   = 6
+    };
+    static const uint8_t NUM_INPUTS = 7;
+
+    protected:
+virtual bool connect(const NodeAddr& addr);
     bool initialWrites();
+
+    static const std::vector<std::string> inputNames;
 
     BLERemoteCharacteristic *pCharacteristic_;
 }; // class DroidDepotProtocol

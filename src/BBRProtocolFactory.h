@@ -8,6 +8,9 @@
 namespace bb {
 namespace rmt {
 
+/**
+ * Protocol Factory -- creates protocols and handles storing them to / retrieving them from non-volatile memory.
+ */
 class ProtocolFactory {
 public:
     static Protocol* getOrCreateProtocol(ProtocolType type);

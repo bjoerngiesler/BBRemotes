@@ -13,6 +13,7 @@
 namespace bb {
 namespace rmt {
 
+//! Monaco-over-ESPnow Protocol
 class MESPProtocol: public MProtocol {
 public:
     MESPProtocol();

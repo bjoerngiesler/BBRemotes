@@ -15,6 +15,7 @@
 namespace bb {
 namespace rmt {
 
+//! Bluetooth Low Energy Protocol superclass for commercial BLE receivers
 class BLEProtocol: public Protocol, public BLEAdvertisedDeviceCallbacks, public BLEClientCallbacks {
 public:
     BLEProtocol();

@@ -33,7 +33,7 @@ static int printf(const char* format, ...) {
     return retval;
 }
 
-  
+//! Central registry for protocol types.  
 enum ProtocolType {
     MONACO_XBEE       = 'X',
     MONACO_ESPNOW     = 'E',
@@ -46,8 +46,29 @@ enum ProtocolType {
     INVALID_PROTOCOL  = '-'
 };
 
+//! Typedef for input IDs. Valid input IDs go from 0 to 254.
+typedef uint8_t InputID;
+//! Invalid input ID definition.
+static const InputID INPUT_INVALID = 255;
+
+//! Typedef for axis IDs. Valid axis IDs go from 0 to 126.
+typedef uint8_t AxisID;
+//! Invalid axis ID definition.
+static const AxisID AXIS_INVALID = 127;
+
+// Typedef for unit conversion.
+enum Unit {
+    UNIT_DEGREES          = 0, // [0..360)
+    UNIT_DEGREES_CENTERED = 1, // (-180..180)
+    UNIT_UNITY            = 2, // [0..1]
+    UNIT_UNITY_CENTERED   = 3, // [-1..1]
+    UNIT_RAW              = 4  // dependent on wire interface
+};
+
+//! Maximum length of protocol, input, or axis names on the wire.
 static const uint8_t NAME_MAXLEN = 10;
 
+//! Class to safely handle strings of a certain maximum length, without wasting space for trailing '\0'.
 struct __attribute__ ((packed)) MaxlenString {
     char buf[NAME_MAXLEN];
     void zero() {
@@ -114,20 +135,7 @@ struct __attribute__ ((packed)) MaxlenString {
     }
 };
 
-typedef uint8_t InputID;
-typedef uint8_t AxisID;
-static const InputID INPUT_INVALID = 255;
-static const AxisID AXIS_INVALID = 127;
-
-
-enum Unit {
-    UNIT_DEGREES          = 0, // [0..360)
-    UNIT_DEGREES_CENTERED = 1, // (-180..180)
-    UNIT_UNITY            = 2, // [0..1]
-    UNIT_UNITY_CENTERED   = 3, // [-1..1]
-    UNIT_RAW              = 4  // dependent on wire interface
-};
-
+//! Node address struct. Handles 64bit XBee addresses, 48bit ESPnow or Bluetooth addresses, and 32bit IP addresses.
 struct __attribute__ ((packed)) NodeAddr {
     uint8_t byte[8];
 
@@ -205,7 +213,7 @@ static bool operator<(const NodeAddr& a1, const NodeAddr& a2) {
     return false;
 }
 
-// NodeDescription - 20 bytes
+//! NodeDescription - 20 bytes
 struct __attribute__ ((packed)) NodeDescription {
     NodeAddr addr;               // byte 0..7
     MaxlenString name;           // byte 8..17
@@ -256,6 +264,7 @@ enum MixType {
 
 struct __attribute__ ((packed)) Interpolator {
     int8_t i0, i25, i50, i75, i100;
+    bool operator==(const Interpolator& i) { return i0 == i.i0 && i25 == i.i25 && i50 == i.i50 && i75 == i.i75 && i100 == i.i100; }
 };
 static constexpr Interpolator INTERP_ZERO = {0, 0, 0, 0, 0};
 static constexpr Interpolator INTERP_LIN_POSITIVE = {0, 25, 50, 75, 100};
@@ -427,6 +436,7 @@ struct Telemetry {
     float imuPitch, imuRoll, imuHeading; // Unit: degrees -- leave 0 if not applicable
     float batteryCurrent;                // Unit: amps
     float batteryVoltage;                // Unit: volts
+    float posX, posY;                    // Unit: meters -- leave 0 if not applicable
 };
 
 /*

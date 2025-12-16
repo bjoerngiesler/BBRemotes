@@ -9,7 +9,7 @@ uint8_t Receiver::numInputs(){
     return inputs_.size();
 }
 
-uint8_t Receiver::addInput(const std::string& name, std::function<void(float)> callback) {
+InputID Receiver::addInput(const std::string& name, std::function<void(float)> callback) {
     if(inputWithName(name) != INPUT_INVALID) return false;
 
     Input input;
@@ -19,17 +19,17 @@ uint8_t Receiver::addInput(const std::string& name, std::function<void(float)> c
     return inputs_.size()-1;
 }
 
-uint8_t Receiver::addInput(const std::string& name, float& var) {
+InputID Receiver::addInput(const std::string& name, float& var) {
     return addInput(name, [&var](float v) { var = v; });
 }
 
-const std::string& Receiver::inputName(uint8_t input)
+const std::string& Receiver::inputName(InputID input)
 {
     if(input >= inputs_.size()) return EMPTY;
     return inputs_[input].name;
 }
 
-uint8_t Receiver::inputWithName(const std::string& name) {
+InputID Receiver::inputWithName(const std::string& name) {
     for(uint8_t i=0; i<inputs_.size(); i++) {
         if(inputs_[i].name == name) return i;
     }

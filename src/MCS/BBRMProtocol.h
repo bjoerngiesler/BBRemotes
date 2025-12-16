@@ -7,6 +7,7 @@
 namespace bb {
 namespace rmt {
 
+//! Monaco Protocol
 class MProtocol: public Protocol {
 public:
     enum TransmitterTypes {

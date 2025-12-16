@@ -17,6 +17,7 @@ namespace rmt {
 
 class SpheroProtocol;
 
+//! Sphero BLE Transmitter
 class SpheroTransmitter: public TransmitterBase<SpheroProtocol> {
 public:
     SpheroTransmitter(SpheroProtocol* proto);

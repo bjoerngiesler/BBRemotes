@@ -7,6 +7,7 @@
 namespace bb {
 namespace rmt {
 
+//! Monaco Protocol Receiver
 class MReceiver: public Receiver {
 public:
 	virtual bool incomingControlPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, const MControlPacket& packet);

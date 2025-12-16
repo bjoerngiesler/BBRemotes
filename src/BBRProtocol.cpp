@@ -12,6 +12,8 @@ static const std::string EMPTY("");
 
 static unsigned long transmitUSGap_ = 40;
 
+static MixManager invalidMgr = MixManager::InvalidManager;
+
 void Protocol::setTransmitFrequencyHz(uint8_t transmitFrequencyHz) {
     transmitUSGap_ = 1000000 / transmitFrequencyHz;
 }
@@ -203,7 +205,7 @@ uint8_t Protocol::numInputs(const NodeAddr& addr) {
     return 0;
 }
 
-const std::string& Protocol::inputName(const NodeAddr& addr, uint8_t input) {
+const std::string& Protocol::inputName(const NodeAddr& addr, InputID input) {
     for(auto& pair: inputs_) {
         if(addr == pair.first) {
             if(input < pair.second.size()) return pair.second[input];
@@ -213,7 +215,7 @@ const std::string& Protocol::inputName(const NodeAddr& addr, uint8_t input) {
     return EMPTY;
 }
 
-uint8_t Protocol::inputWithName(const NodeAddr& addr, const std::string& name) {
+InputID Protocol::inputWithName(const NodeAddr& addr, const std::string& name) {
     for(auto& pair: inputs_) {
         if(addr == pair.first) {
             for(unsigned int i=0; i<pair.second.size(); i++) {
@@ -225,15 +227,12 @@ uint8_t Protocol::inputWithName(const NodeAddr& addr, const std::string& name) {
     return INPUT_INVALID;
 }
 
-const MixManager& Protocol::mixManager(const NodeAddr& addr) {
-    for(auto& pair: mixManagers_) {
-        if(pair.first == addr) return pair.second;
-    }
-    return MixManager::InvalidManager;
+MixManager& Protocol::mixManager(const NodeAddr& addr) {
+    return mixManagers_[addr];
 }
 
-const MixManager& Protocol::mixManager() {
-    if(pairedNodes_.size() != 1)  return MixManager::InvalidManager;
+MixManager& Protocol::mixManager() {
+    if(pairedNodes_.size() != 1)  return invalidMgr;
     return mixManager(pairedNodes_[0].addr);
 }
 
@@ -296,6 +295,7 @@ void Protocol::printInfo() {;
 
     bb::rmt::printf("This protocol has %d inputs and %d mix managers.\n", inputs_.size(), mixManagers_.size());
     bb::rmt::printf("This protocol has %d registered destroy callbacks.\n", destroyCBs_.size());
+    bb::rmt::printf("This protocol is stored as \"%s\".\n", storageName_.c_str());
 }
 
 void Protocol::setCommTimeoutWatchdog(float seconds, std::function<void(Protocol*,float)> commTimeoutWD) {

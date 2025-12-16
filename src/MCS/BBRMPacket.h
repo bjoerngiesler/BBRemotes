@@ -217,13 +217,13 @@ struct __attribute__ ((packed)) MControlPacket {
 
 struct __attribute__ ((packed)) MStatePacket {
 	Telemetry::SubsysStatus battStatus 	: 2; // bit 0..1
-	Telemetry::SubsysStatus driveStatus 	: 2; // bit 2..3
-	Telemetry::SubsysStatus servoStatus  : 2; // bit 4..5
-	Telemetry::SubsysStatus droidStatus  : 2; // bit 6..7
+	Telemetry::SubsysStatus driveStatus : 2; // bit 2..3
+	Telemetry::SubsysStatus servoStatus : 2; // bit 4..5
+	Telemetry::SubsysStatus droidStatus : 2; // bit 6..7
 
 	// byte 2
 	Telemetry::DriveMode driveMode     : 3; // bit 8..10
-	uint8_t reserved1       : 5; // bit 11..15
+	uint8_t reserved1       : 5; // bit 11..15 -- add another two status thingies?
 
 	// byte 3
 	int16_t speed           : 12; // bit 16..27, unit mm/s, range -4095..4095 or -14.7kph..14.7kph.
@@ -233,6 +233,7 @@ struct __attribute__ ((packed)) MStatePacket {
 	uint16_t heading        : 10; // bit 48..57, in 360/1024 deg steps
 	uint8_t battCurrent     : 6;  // bit 58..63 - in 100mA steps starting at 0, so this goes up to 6.3A 
 	uint8_t battVoltage     : 8;  // bit 64..71 - in 0.1V steps starting at a base voltage of 3V, so this goes up to 28.5V
+	// 37 bits still free -- could add another battStatus, battCurrent, and battVoltage, one more status, and still have 19 bits.
 };
 
 struct __attribute__ ((packed)) MConfigPacket {

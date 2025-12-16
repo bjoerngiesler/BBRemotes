@@ -6,6 +6,7 @@
 namespace bb {
 namespace rmt {
 
+//! Monaco-over-Serial Satellite Protocol
 class MSatProtocol: public MProtocol {
 public:
     MSatProtocol();

@@ -10,6 +10,8 @@
 
 namespace bb {
 namespace rmt {
+
+//! Sphero BLE Protocol
 class SpheroProtocol: public BLEProtocol {
 public:
     SpheroProtocol();

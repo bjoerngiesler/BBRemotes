@@ -8,7 +8,7 @@
 // ACTION PLAN
 // 1. Remove all bb Subsystem dependencies - CHECK
 // 2. Make compile-able - CHECK
-// 3. make work
+// 3. make work - CHECK
 // 4. Remove non-API mode stuff
 
 using namespace bb;
@@ -93,15 +93,32 @@ bool MXBProtocol::init(const std::string& nodeName, uint16_t chan, uint16_t pan,
 	hwAddress_.fromXBeeAddress(strtol(addrH.c_str(), 0, 16), strtol(addrL.c_str(), 0, 16));
 	printf("Found XBee at address: %s:%s (0x%lx:%lx) Firmware version: %s\n", addrH.c_str(), addrL.c_str(), hwAddress_.addrHi(), hwAddress_.addrLo(), fw.c_str());
 
+	// request command timeout
 	String retval = sendStringAndWaitForResponse("ATCT"); 
 	if(retval != "") {
 		atmode_timeout_ = strtol(retval.c_str(), 0, 16) * 100;
 	}
 
+	// perform energy detect
+	retval = sendStringAndWaitForResponse("ATED"); 
+	if(retval != "") {
+		printf("Energy detect: %s\n", retval.c_str());
+	}
+
+	// FIXME Things to try for range:
+	// Play with MAC mode (MM - retries, ACKs, Digi header)
+	// Play with Clear Channel Assessment setting (CA)
+	// Play with energy detect, and possibly auto-channel association
+	// Play with transmit power (PL)
+
+	// MAC mode: 0 is Digi mode w/ACKs, 1 802.15.4 no ACKS, 2 802.15.4 with ACKS, 3 is Digi mode no ACKS
+	// We probably want Digi mode with ACKs; FIXME.
 	retval = sendStringAndWaitForResponse("ATMM=3");
 	if(retval != "OK") {
 		printf("MM=3 response: %s\n", retval.c_str());
 	}
+
+
 	retval = sendStringAndWaitForResponse("ATRR");
 	if(retval != "OK") {
 		printf("RR response: %s\n", retval.c_str());
@@ -110,6 +127,12 @@ bool MXBProtocol::init(const std::string& nodeName, uint16_t chan, uint16_t pan,
 	if(setConnectionInfo(chan, pan, true) != true) {
 		printf("Setting connection info failed.\n");
 		return false;
+	}
+
+	// check output power
+	retval = sendStringAndWaitForResponse("ATPP");; 
+	if(retval != "") {
+		printf("Output power: %s\n", retval.c_str());
 	}
 
 	chan_ = chan;

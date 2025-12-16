@@ -9,12 +9,12 @@ uint8_t Transmitter::numAxes() {
     return axes_.size();
 }
 
-const std::string& Transmitter::axisName(uint8_t axis) {
+const std::string& Transmitter::axisName(AxisID axis) {
     if(axis >= axes_.size()) return InvalidString;
     return axes_[axis].name;
 }
 
-bool Transmitter::setAxisName(uint8_t axis, const std::string& name) {
+bool Transmitter::setAxisName(AxisID axis, const std::string& name) {
     if(axis >= axes_.size()) return false;
     axes_[axis].name = name;
     return true;
@@ -32,7 +32,7 @@ uint8_t Transmitter::axisWithName(const std::string& name, bool add, uint8_t bit
     return addAxis(name, bitDepth);
 }
 
-uint8_t Transmitter::bitDepthForAxis(uint8_t axis) {
+uint8_t Transmitter::bitDepthForAxis(AxisID axis) {
     if(axis >= axes_.size()) return 0;
     return axes_[axis].bitDepth; 
 }
@@ -44,7 +44,7 @@ uint8_t Transmitter::addAxis(const std::string& name, uint8_t bitDepth) {
     return axes_.size()-1;
 }
 
-bool Transmitter::setAxisValue(uint8_t axis, float value, Unit unit) {
+bool Transmitter::setAxisValue(AxisID axis, float value, Unit unit) {
     if(axis >= axes_.size()) return false;
     float maxval = (1<<bitDepthForAxis(axis))-1;
     switch(unit) {
@@ -72,7 +72,7 @@ bool Transmitter::setAxisValue(uint8_t axis, float value, Unit unit) {
     return true;
 }
 
-float Transmitter::axisValue(uint8_t axis, Unit unit) {
+float Transmitter::axisValue(AxisID axis, Unit unit) {
     if(axis >= axes_.size()) return 0;
     uint32_t raw = rawAxisValue(axis);
     if(unit == UNIT_RAW) return raw;
@@ -105,7 +105,7 @@ float Transmitter::axisValue(uint8_t axis, Unit unit) {
     }
 }
 
-bool Transmitter::setRawAxisValue(uint8_t axis, uint32_t value) {
+bool Transmitter::setRawAxisValue(AxisID axis, uint32_t value) {
     if(axis >= axes_.size()) return false;
     uint32_t maxval = (1 << axes_[axis].bitDepth)-1;
     if(value > maxval) value = maxval;
@@ -114,12 +114,12 @@ bool Transmitter::setRawAxisValue(uint8_t axis, uint32_t value) {
     return true;
 }
 
-uint32_t Transmitter::rawAxisValue(uint8_t axis) {
+uint32_t Transmitter::rawAxisValue(AxisID axis) {
     if(axis >= axes_.size()) return 0;
     return axes_[axis].value;
 }
 
-float Transmitter::computeInputValue(const AxisMix& mix) {
+float Transmitter::computeMix(const AxisMix& mix) {
     float v1 = axisValue(mix.axis1, UNIT_UNITY);
     float v2 = axisValue(mix.axis2, UNIT_UNITY);
     return mix.compute(v1, 0.0f, 1.0f, v2, 0.0f, 1.0f);

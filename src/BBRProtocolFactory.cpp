@@ -154,6 +154,8 @@ Protocol* ProtocolFactory::loadProtocol(const std::string& name) {
         printf("Warning: Could not deserialize block %d into protocol\n");
     }
 
+    protocol->setStorageName(name);
+
     return protocol;
 }
 
@@ -220,6 +222,8 @@ bool ProtocolFactory::storeProtocol(const std::string& name, Protocol* proto) {
         printf("Error storing\n");
         return false;
     }
+
+    proto->setStorageName(name);
 
     if(bumpNum == true) storage_.num++;
 

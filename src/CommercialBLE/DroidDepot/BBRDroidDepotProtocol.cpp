@@ -12,11 +12,17 @@ static BLEUUID SERVICE_UUID("09b600A0-3e42-41fc-b474-e9c0c8f0c801");
 static BLEUUID NOTIFICATION_UUID("09b600b0-3e42-41fc-b474-e9c0c8f0c801");
 static BLEUUID WRITE_UUID("09b600b1-3e42-41fc-b474-e9c0c8f0c801");
 
+const std::vector<std::string> DroidDepotProtocol::inputNames = {"speed", "turn", "dome", "sound1", "sound2", "sound3", "accessory"};
+
+static const std::string EMPTY("");
+
 DroidDepotProtocol::DroidDepotProtocol() {
     pBLEScan_ = nullptr;
     myDevice_ = nullptr;
     pCharacteristic_ = nullptr;
     transmitter_ = nullptr;
+
+
 }
 
 uint8_t DroidDepotProtocol::numTransmitterTypes() { return 1; }
@@ -37,6 +43,9 @@ bool DroidDepotProtocol::isAcceptableForDiscovery(BLEAdvertisedDevice advertised
 }
 
 bool DroidDepotProtocol::connect(const NodeAddr& addr) {
+    //bb::rmt::printf("FIXME not connecting for now - just for test\n");
+    //return false;
+
     if(pClient_ == nullptr) {
         pClient_ = BLEDevice::createClient();
         Serial.printf(" - Created client\n");
@@ -46,7 +55,12 @@ bool DroidDepotProtocol::connect(const NodeAddr& addr) {
 
     // Connect to the remote BLE Server.
     Serial.printf("Connecting to %s\n", addr.toString().c_str());
-    pClient_->connect(BLEAddress(addr.toString()), esp_ble_addr_type_t(1));
+    if(pClient_->connect(BLEAddress(addr.toString()), esp_ble_addr_type_t(1)) == false) {
+        Serial.printf("Connecting failed\n");
+        pClient_ = nullptr;
+        return false;
+    }
+
     Serial.printf(" - Connected to server\n");
     pClient_->setMTU(46); //set client to request maximum MTU from server (default is 23 otherwise)
   
@@ -118,8 +132,25 @@ bool DroidDepotProtocol::pairWith(const NodeDescription& node) {
 }
 
 bool DroidDepotProtocol::transmitCommand(uint8_t *payload, uint8_t len) {
+    if(pCharacteristic_ == nullptr) return false;
+    
     pCharacteristic_->writeValue(payload, len);
     return true;
 }
+
+uint8_t DroidDepotProtocol::numInputs(const NodeAddr& addr) {
+    return NUM_INPUTS;
+}
+
+const std::string& DroidDepotProtocol::inputName(const NodeAddr& addr, uint8_t input) {
+    if(input < NUM_INPUTS) return inputNames[input];
+    return EMPTY;
+}
+
+uint8_t DroidDepotProtocol::inputWithName(const NodeAddr& addr, const std::string& name) {
+    for(int i=0; i<NUM_INPUTS; i++) if(inputNames[i] == name) return i;
+    return INPUT_INVALID;
+}
+
 
 #endif // !CONFIG_IDF_TARGET_ESP32S2
