@@ -22,15 +22,14 @@ DroidDepotTransmitter::DroidDepotTransmitter(DroidDepotProtocol *proto): Transmi
     mgr.setMix(DroidDepotProtocol::INPUT_SPEED,     AxisMix(0, INTERP_LIN_CENTERED));
     mgr.setMix(DroidDepotProtocol::INPUT_TURN,      AxisMix(1, INTERP_LIN_CENTERED));
     mgr.setMix(DroidDepotProtocol::INPUT_DOME,      AxisMix(2, INTERP_LIN_CENTERED));
-    mgr.setMix(DroidDepotProtocol::INPUT_SOUND1,    AxisMix(3, INTERP_LIN_POSITIVE));
-    mgr.setMix(DroidDepotProtocol::INPUT_SOUND2,    AxisMix(4, INTERP_LIN_POSITIVE));
-    mgr.setMix(DroidDepotProtocol::INPUT_SOUND3,    AxisMix(5, INTERP_LIN_POSITIVE));
-    mgr.setMix(DroidDepotProtocol::INPUT_ACCESSORY, AxisMix(6, INTERP_LIN_POSITIVE));
+    //mgr.setMix(DroidDepotProtocol::INPUT_SOUND1,    AxisMix(3, INTERP_LIN_POSITIVE));
+    //mgr.setMix(DroidDepotProtocol::INPUT_SOUND2,    AxisMix(4, INTERP_LIN_POSITIVE));
+    //mgr.setMix(DroidDepotProtocol::INPUT_SOUND3,    AxisMix(5, INTERP_LIN_POSITIVE));
+    //mgr.setMix(DroidDepotProtocol::INPUT_ACCESSORY, AxisMix(6, INTERP_LIN_POSITIVE));
 }
 
 bool DroidDepotTransmitter::transmit() {
     static bool soundPressed[] = {false, false, false};
-    AxisMix mix;
 
     const MixManager& mgr = protocol_->mixManager();
     //mgr.printDescription();
@@ -40,11 +39,11 @@ bool DroidDepotTransmitter::transmit() {
             continue;
         }
 
-        inputVals_[i] = computeMix(mix);
+        inputVals_[i] = computeMix(mgr.mixForInput(i));
     }
 
-    float mot0 = (inputVals_[DroidDepotProtocol::INPUT_SPEED]+inputVals_[DroidDepotProtocol::INPUT_TURN]);
-    float mot1 = (inputVals_[DroidDepotProtocol::INPUT_SPEED]-inputVals_[DroidDepotProtocol::INPUT_TURN]);
+    float mot0 = (inputVals_[DroidDepotProtocol::INPUT_SPEED]-inputVals_[DroidDepotProtocol::INPUT_TURN]);
+    float mot1 = (inputVals_[DroidDepotProtocol::INPUT_SPEED]+inputVals_[DroidDepotProtocol::INPUT_TURN]);
     float dome = inputVals_[DroidDepotProtocol::INPUT_DOME];
     float sound1 = inputVals_[DroidDepotProtocol::INPUT_DOME];
     float sound2 = inputVals_[DroidDepotProtocol::INPUT_DOME];
@@ -66,16 +65,14 @@ bool DroidDepotTransmitter::transmit() {
 
     protocol_->transmitCommand(motCmd, sizeof(motCmd));
 
-#if 0
     for(uint8_t i=0; i<3; i++) {
-        if(soundPressed[i] == false && inputVals_[INPUT_SOUND1+i] > 0.5) {
+        if(soundPressed[i] == false && inputVals_[DroidDepotProtocol::INPUT_SOUND1+i] > 0.5) {
             bb::rmt::printf("Playing sound %d\n", i);
             soundPressed[i] = true;
             uint8_t sndCmd[] = {0x27, 0x42, 0x0F, 0x44, 0x44, 0x00, 0x1F, 0x00, 0x27, 0x42, 0x0F, 0x44, 0x44, 0x00, 0x18, i};
             protocol_->transmitCommand(sndCmd, sizeof(sndCmd));
-        } else if(inputVals_[INPUT_SOUND1+i] <= 127) soundPressed[i] = false;
+        } else if(inputVals_[DroidDepotProtocol::INPUT_SOUND1+i] <= 127) soundPressed[i] = false;
     }
-#endif
 
     return true;
 }

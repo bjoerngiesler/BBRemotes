@@ -8,6 +8,7 @@
 #include "CommercialBLE/Sphero/BBRSpheroProtocol.h"
 
 #include "BBRTypes.h"
+#include "BBRUtils.h"
 #include "BBRReceiver.h"
 #include "BBRTransmitter.h"
 #include "BBRProtocol.h"

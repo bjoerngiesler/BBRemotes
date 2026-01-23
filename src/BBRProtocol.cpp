@@ -87,15 +87,13 @@ bool Protocol::deserialize(StorageBlock& block) {
         pairedNodes_.push_back(block.pairedNodes[i]);
     }
 
-    #if 0 // FIXME
     mixManagers_.clear();
     for(unsigned int i=0; i<block.numMappings; i++) {
-        if(mixManager(block.mapping[i].addr) == MixManager::InvalidManager) {
+        if(&mixManager(block.mapping[i].addr) == &MixManager::InvalidManager) {
             mixManagers_[block.mapping[i].addr] = MixManager();
         }
         mixManager(block.mapping[i].addr).setMix(block.mapping[i].input, block.mapping[i].mix);
     }
-    #endif
 
     return true;
 }

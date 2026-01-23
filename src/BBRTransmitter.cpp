@@ -122,6 +122,7 @@ uint32_t Transmitter::rawAxisValue(AxisID axis) {
 float Transmitter::computeMix(const AxisMix& mix) {
     float v1 = axisValue(mix.axis1, UNIT_UNITY);
     float v2 = axisValue(mix.axis2, UNIT_UNITY);
+    //bb::rmt::printf("Ax1: %d Ax2: %d V1: %f V2: %f\n", mix.axis1, mix.axis2, v1, v2);
     return mix.compute(v1, 0.0f, 1.0f, v2, 0.0f, 1.0f);
 }
 

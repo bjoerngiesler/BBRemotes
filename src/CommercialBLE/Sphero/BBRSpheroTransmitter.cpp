@@ -45,9 +45,9 @@ bool SpheroTransmitter::transmit() {
     const NodeAddr& addr = descr.addr;
     AxisMix mix;
 
-    if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_DOME_ANGLE))).isValid()) {
+    if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_DOME_ANGLE))).isValid()) {
         dome = computeMix(mix) * 180.0f;
-    } else if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_DOME_RATE))).isValid()) {
+    } else if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_DOME_RATE))).isValid()) {
         domeAngle_ += computeMix(mix) * 1.8f;
         if(domeAngle_ > 100) domeAngle_ = 100;
         if(domeAngle_ < -100) domeAngle_ = -100;
@@ -57,11 +57,11 @@ bool SpheroTransmitter::transmit() {
     floatToBuf(dome, floatBuf);
     protocol_->transmitCommand(CMD_DOME, floatBuf, 4);
 
-    float speed = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_SPEED))) * 255.0f;
+    float speed = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_SPEED))) * 255.0f;
     float turn = 0;
-    if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_TURN_ANGLE))).isValid()) {
+    if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_TURN_ANGLE))).isValid()) {
         turn = computeMix(mix) * 360.0f;
-    } else if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_TURN_RATE))).isValid()) {
+    } else if((mix = mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_TURN_RATE))).isValid()) {
         turnAngle_ += computeMix(mix) * 3.6f;
         if(turnAngle_ > 360) turnAngle_ -= 360;
         if(turnAngle_ < 0) turnAngle_ += 360;
@@ -80,7 +80,7 @@ bool SpheroTransmitter::transmit() {
     uint8_t emoteBuf[2];
     float emote;
 
-    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_0)));
+    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_EMOTE_0)));
     if(emote > 0.5 && emote != lastEmote0_) {
         emoteBuf[0] = 0; 
         emoteBuf[1] = 0;
@@ -88,7 +88,7 @@ bool SpheroTransmitter::transmit() {
     }
     lastEmote0_ = emote;
 
-    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_1)));
+    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_EMOTE_1)));
     if(emote > 0.5 && emote != lastEmote1_) {
         emoteBuf[0] = 0; 
         emoteBuf[1] = 1;
@@ -96,7 +96,7 @@ bool SpheroTransmitter::transmit() {
     }
     lastEmote1_ = emote;
 
-    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_2)));
+    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_EMOTE_2)));
     if(emote > 0.5 && emote != lastEmote2_) {
         emoteBuf[0] = 0; 
         emoteBuf[1] = 2;
@@ -104,7 +104,7 @@ bool SpheroTransmitter::transmit() {
     }
     lastEmote2_ = emote;
 
-    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_3)));
+    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_EMOTE_3)));
     if(emote > 0.5 && emote != lastEmote3_) {
         emoteBuf[0] = 0; 
         emoteBuf[1] = 0;
@@ -112,7 +112,7 @@ bool SpheroTransmitter::transmit() {
     }
     lastEmote3_ = emote;
 
-    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_EMOTE_4)));
+    emote = computeMix(mgr.mixForInput(protocol_->inputWithName(addr, INPUT_NAME_EMOTE_4)));
     if(emote > 0.5 && emote != lastEmote4_) {
         emoteBuf[0] = 0; 
         emoteBuf[1] = 0;

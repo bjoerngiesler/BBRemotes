@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "BBRTypes.h"
+#include "BBRUtils.h"
 #include "BBRProtocol.h"
 
 namespace bb {

@@ -12,7 +12,15 @@ static BLEUUID SERVICE_UUID("09b600A0-3e42-41fc-b474-e9c0c8f0c801");
 static BLEUUID NOTIFICATION_UUID("09b600b0-3e42-41fc-b474-e9c0c8f0c801");
 static BLEUUID WRITE_UUID("09b600b1-3e42-41fc-b474-e9c0c8f0c801");
 
-const std::vector<std::string> DroidDepotProtocol::inputNames = {"speed", "turn", "dome", "sound1", "sound2", "sound3", "accessory"};
+const std::vector<std::string> DroidDepotProtocol::inputNames = {
+    INPUT_NAME_SPEED, 
+    INPUT_NAME_TURN_RATE, 
+    INPUT_NAME_DOME_RATE, 
+    INPUT_NAME_EMOTE_0, 
+    INPUT_NAME_EMOTE_1, 
+    INPUT_NAME_EMOTE_2, 
+    "Accessory"
+};
 
 static const std::string EMPTY("");
 

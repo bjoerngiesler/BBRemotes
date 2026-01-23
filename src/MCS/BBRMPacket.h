@@ -2,6 +2,7 @@
 #define BBRMPACKET_H
 
 #include "../BBRTypes.h"
+#include "../BBRUtils.h"
 
 //
 // REALTIME PROTOCOL
