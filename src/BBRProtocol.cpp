@@ -133,8 +133,15 @@ bool Protocol::pairWith(const NodeDescription& node) {
         printf("Already paired with %s\n", node.addr.toString().c_str());
         return true; // already paired
     }
-    printf("Now paired with %s (c:%d r:%d t:%d)\n", node.addr.toString().c_str(), node.isConfigurator, node.isReceiver, node.isTransmitter);
+
+    printf("Now paired with %s (configurator: %s receiver: %s transmitter: %s)\n", 
+            node.addr.toString().c_str(), 
+            node.isConfigurator ? "yes" : "no", 
+            node.isReceiver ? "yes" : "no", 
+            node.isTransmitter ? "yes" : "no");
+
     pairedNodes_.push_back(node);
+    if(pairingCB_ != nullptr) pairingCB_(this, node);
     return true;
 }
 
@@ -258,6 +265,10 @@ bool Protocol::sendMixes() {
 
 void Protocol::addDestroyCB(std::function<void(Protocol*)> fn) {
     destroyCBs_.push_back(fn);
+}
+
+void Protocol::setPairingCallback(std::function<void(Protocol*,const NodeDescription&)> fn) {
+    pairingCB_ = fn;
 }
 
 static void printNodeDescription(const NodeDescription& nd, std::string linePrefix = "") {

@@ -173,6 +173,8 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 
 		reply.seqnum = seqnum_;
 		seqnum_ = (seqnum_ + 1) % MAX_SEQUENCE_NUMBER;
+		
+		bb::rmt::printf("Broadcasting PAIRING_DISCOVERY_REPLY packet\n");
 		sendBroadcastPacket(reply);
 		return true;
 	}
@@ -180,9 +182,12 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 	if(packet.type == MPairingPacket::PAIRING_DISCOVERY_REPLY) {
 		for(auto& n: discoveredNodes_) {
 			if(n.addr == addr) {
+				bb::rmt::printf("Already have node %s\n", addr.toString().c_str());
 				return true;
 			}
 		}
+
+		bb::rmt::printf("Received PAIRING_DISCOVERY_REPLY packet from %s\n", addr.toString().c_str());
 
 		NodeDescription descr;
 		descr.addr = addr;
@@ -212,6 +217,8 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 			printf("Received pairing request but not in pairing mode. Ignoring.\n");
 			return false;
 		}
+
+		bb::rmt::printf("Received PAIRING_REQUEST packet from %s\n", addr.toString().c_str());
 
 		const MPairingPacket::PairingRequest& r = packet.pairingPayload.request;
 		
@@ -252,11 +259,9 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		descr.isConfigurator = packet.pairingPayload.request.pairAsConfigurator;
 		descr.isReceiver = packet.pairingPayload.request.pairAsReceiver;
 		descr.isTransmitter = packet.pairingPayload.request.pairAsTransmitter;
-		printf("Adding %s as configurator: %s receiver: %s transmitter: %s\n", addr.toString().c_str(), 
-					packet.pairingPayload.request.pairAsConfigurator ? "yes" : "no", 
-					packet.pairingPayload.request.pairAsReceiver ? "yes" : "no", 
-					packet.pairingPayload.request.pairAsTransmitter ? "yes" : "no");
-		pairedNodes_.push_back(descr);
+		
+		Protocol::pairWith(descr);
+		
 		reply.payload.pairing.pairingPayload.reply.res = MPairingPacket::PAIRING_REPLY_OK;
 		sendPacket(addr, reply);
 		return true;
@@ -313,6 +318,7 @@ bool MProtocol::discoverNodes(float timeout) {
 		step();
 
 		if(WRAPPEDDIFF(millis(), msSinceDiscoveryPacket, ULONG_MAX) > 1000) {
+			bb::rmt::printf("Broadcasting PAIRING_DISCOVERY_BROADCAST packet\n");
 			sendBroadcastPacket(packet);
 			msSinceDiscoveryPacket = millis();
 		}
@@ -336,7 +342,7 @@ bool MProtocol::pairWith(const NodeDescription& descr) {
 	p.pairingPayload.request.pairAsTransmitter = (transmitter_ != nullptr);
 	p.pairingPayload.request.name = nodeName_;
 
-	printf("Sending packet of size %d to %s\n", sizeof(packet), descr.addr.toString().c_str());
+	printf("Sending PAIRING_REQUEST packet to %s\n", descr.addr.toString().c_str());
 	sendPacket(descr.addr, packet);
 
 	MPacket pairingReplyPacket;
@@ -352,7 +358,7 @@ bool MProtocol::pairWith(const NodeDescription& descr) {
 		return false;
 	}
 
-	printf("Received pairing reply.\n");
+	printf("Received PACKET_TYPE_PAIRING reply from %s.\n", addr.toString().c_str());
 	const MPairingPacket::PairingReply& r = pairingReplyPacket.payload.pairing.pairingPayload.reply;
 
 	if(r.res == MPairingPacket::PAIRING_REPLY_INVALID_SECRET) {
@@ -372,7 +378,7 @@ bool MProtocol::pairWith(const NodeDescription& descr) {
 
 			printf("Pairing with %s (configurator: %d receiver: %d transmitter: %d)\n",
 			n.addr.toString().c_str(), n.isConfigurator, n.isReceiver, n.isTransmitter);
-			return Protocol::pairWith(descr);
+			return Protocol::pairWith(descr); // this calls pairingCB_() too
 		}
 	}
 

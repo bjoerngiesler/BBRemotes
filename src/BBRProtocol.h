@@ -196,6 +196,9 @@ public:
     //! Register a callback this protocol will call as it's being destroyed.
     virtual void addDestroyCB(std::function<void(Protocol*)> fn);
 
+    //! Register a callback this protocol will call when a node gets paired.
+    virtual void setPairingCallback(std::function<void(Protocol*,const NodeDescription&)> fn);
+
     //! Print protocol info.
     virtual void printInfo();
 
@@ -216,6 +219,7 @@ protected:
     std::map<NodeAddr,std::vector<std::string>> inputs_;
     std::map<NodeAddr,MixManager> mixManagers_;
     std::vector<std::function<void(Protocol*)>> destroyCBs_;
+    std::function<void(Protocol*,const NodeDescription&)> pairingCB_;
 
     std::function<void(Protocol*,float)> commTimeoutWD_;
     std::function<void(Protocol*, const NodeAddr&, uint8_t seqnum, const Telemetry&)> telemReceivedCB_;
