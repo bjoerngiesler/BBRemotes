@@ -84,7 +84,7 @@ bool SpheroProtocol::connect(const NodeAddr& addr) {
     
     // Connect to the remove BLE Server.
     Serial.printf("Connecting to %s\n", addr.toString().c_str());
-    pClient_->connect(BLEAddress(addr.toString().c_str()), esp_ble_addr_type_t(1));
+    pClient_->connect(BLEAddress(addr.toString().c_str()), 1);
     Serial.printf(" - Connected to server\n");
     pClient_->setMTU(46); //set client to request maximum MTU from server (default is 23 otherwise)
   

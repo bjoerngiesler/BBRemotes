@@ -18,7 +18,7 @@ void Protocol::setTransmitFrequencyHz(uint8_t transmitFrequencyHz) {
     transmitUSGap_ = 1000000 / transmitFrequencyHz;
 }
 
-Protocol::Protocol(): commTimeoutWD_(nullptr), telemReceivedCB_(nullptr) {
+Protocol::Protocol(): commTimeoutWD_(nullptr), telemReceivedCB_(nullptr), commTimeoutWDCalled_(false) {
 }
 
 Protocol::~Protocol() {
@@ -116,6 +116,14 @@ const NodeDescription& Protocol::discoveredNode(unsigned int index) {
     return discoveredNodes_[index];
 }
 
+bool Protocol::isDiscovered(const NodeAddr& addr) {
+    for(const auto& n: discoveredNodes_) {
+        if(n.addr == addr) return true;
+    }
+    return false;
+}
+
+
 bool Protocol::isPaired() { 
     return pairedNodes_.size() != 0;
 }
@@ -161,8 +169,13 @@ bool Protocol::step() {
     //if(protocolType() == DROIDDEPOT_BLE) ::rmt::printf("step() in %c\n", protocolType());
 
     float secondsSinceLastComm = float(WRAPPEDDIFF(millis(), lastCommHappenedMS_, ULONG_MAX)) / 1000.0f;
-    if(secondsSinceLastComm > commTimeoutSeconds_ && commTimeoutWD_ != nullptr) {
-        commTimeoutWD_(this, secondsSinceLastComm);
+    if(secondsSinceLastComm > commTimeoutSeconds_) {
+        if(commTimeoutWD_ != nullptr && commTimeoutWDCalled_ == false) {
+            commTimeoutWD_(this, secondsSinceLastComm);
+            commTimeoutWDCalled_ = true;
+        }
+    } else {
+        commTimeoutWDCalled_ = false;
     }
 
     bool retval = true;

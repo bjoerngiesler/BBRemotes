@@ -43,6 +43,8 @@ bool MESPProtocol::init(const std::string& nodeName) {
     esp_now_register_recv_cb(esp_now_recv_cb_t(onDataReceived));
 
     Serial.printf("success.\n");
+    Serial.printf("MAC address: ");
+    Serial.println(WiFi.macAddress());
 
     seqnum_ = 0;
 
@@ -88,7 +90,9 @@ void MESPProtocol::onDataSent(const unsigned char *buf, esp_now_send_status_t st
     if(status != ESP_OK) Serial.printf("onDataSent() received error status %d\n", status);
 }
 
-void MESPProtocol::onDataReceived(const uint8_t *mac, const uint8_t *data, int len) {
+void MESPProtocol::onDataReceived(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+    uint8_t* mac = info->src_addr;
+
     if(len != sizeof(MPacket)) {
         Serial.printf("onDataReceived(%02x:%02x:%02x:%02x:%02x:%02x, 0x%p, %d) - invalid size (should be %d)\n", 
                       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], data, len, sizeof(MPacket));
@@ -132,9 +136,15 @@ bool MESPProtocol::sendPacket(const NodeAddr& addr, MPacket& packet, bool bumpS)
     packet.source = source_;
     packet.crc = packet.calculateCRC();
 
-    bool retval = (esp_now_send(addr.byte, (uint8_t*)&packet, sizeof(packet)) == ESP_OK);
-    if(retval == true && bumpS) bumpSeqnum();
-    return retval;
+    bb::rmt::printf("Sending packet to %s\n", addr.toString().c_str());
+    esp_err_t error = esp_now_send(addr.byte, (uint8_t*)&packet, sizeof(packet));
+    if(error == ESP_OK) {
+        if(bumpS) bumpSeqnum();
+        return true;
+    } else {
+        bb::rmt::printf("esp_now_send() returns error %d\n", error);
+    }
+    return false;
 }
 
 bool MESPProtocol::sendBroadcastPacket(MPacket& packet, bool bumpS) {
@@ -204,7 +214,9 @@ void MESPProtocol::addTempPeer(const NodeAddr& addr) {
     peerInfo.channel = 0;  
     peerInfo.encrypt = false;
 
-    esp_now_add_peer(&peerInfo);
+    if(esp_now_add_peer(&peerInfo) != ESP_OK) {
+        bb::rmt::printf("Failed to add peer\n");
+    } else bb::rmt::printf("Added temp peer %s\n", addr.toString().c_str());
 
     tempPeers_.push_back({addr, millis()});
 }
@@ -213,11 +225,11 @@ void MESPProtocol::cleanupTempPeers() {
     std::vector<TempPeer> tempTempPeers;
     for(auto& p: tempPeers_) {
         if(WRAPPEDDIFF(millis(), p.msAdded, ULONG_MAX) > keepTempPeerMS_) {
-            if(isPaired(p.addr)) {
-                Serial.printf("Removing %s from temp peer list but not from ESP-NOW, since we are paired with it.\n", p.addr.toString().c_str());
+            if(isPaired(p.addr) && isDiscovered(p.addr)) {
+                Serial.printf("Removing %s from temp peer list but not from ESP-NOW, we're paired or have discovered it.\n", p.addr.toString().c_str());
             } else {
                 Serial.printf("Removing %s from temp peer list\n", p.addr.toString().c_str());
-                esp_now_del_peer(p.addr.byte);
+                //esp_now_del_peer(p.addr.byte);
             }
         } else {
             tempTempPeers.push_back(p);

@@ -102,6 +102,7 @@ public:
     virtual bool discoverNodes(float timeout = 5) = 0;
     virtual unsigned int numDiscoveredNodes();
     const NodeDescription& discoveredNode(unsigned int index);
+    virtual bool isDiscovered(const NodeAddr& node);
 
     virtual bool pairWith(const NodeDescription& node);
     virtual bool rePairWithConnected(bool receivers, bool transmitters, bool configurators);
@@ -226,6 +227,8 @@ protected:
     float commTimeoutSeconds_;
     unsigned long lastCommHappenedMS_;
     unsigned long usLastTransmit_;
+
+    bool commTimeoutWDCalled_;
 
     uint8_t seqnum_;
 };

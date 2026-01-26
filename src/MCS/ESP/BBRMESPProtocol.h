@@ -28,7 +28,7 @@ public:
     virtual bool discoverNodes(float timeout = 5);
 
     static void onDataSent(const unsigned char *buf, esp_now_send_status_t status);
-    static void onDataReceived(const uint8_t *mac, const uint8_t *data, int len);
+    static void onDataReceived(const esp_now_recv_info_t *mac, const uint8_t *data, int len);
 
     virtual bool acceptsPairingRequests();
 

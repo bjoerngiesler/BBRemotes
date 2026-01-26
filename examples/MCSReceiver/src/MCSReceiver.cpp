@@ -36,6 +36,9 @@ void timeoutCB(Protocol* proto, float timeout) {
 void setup() {
   Serial.begin(2000000);
 
+  while(!Serial);
+  delay(3000);
+
   Serial.print("Hello world\n");
   bb::rmt::printf("MCS Receiver example\n");
 
