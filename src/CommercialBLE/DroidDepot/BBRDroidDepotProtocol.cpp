@@ -63,7 +63,7 @@ bool DroidDepotProtocol::connect(const NodeAddr& addr) {
 
     // Connect to the remote BLE Server.
     Serial.printf("Connecting to %s\n", addr.toString().c_str());
-    if(pClient_->connect(BLEAddress(addr.toString()), esp_ble_addr_type_t(1)) == false) {
+    if(pClient_->connect(BLEAddress(addr.toString().c_str()), esp_ble_addr_type_t(1)) == false) {
         Serial.printf("Connecting failed\n");
         pClient_ = nullptr;
         return false;

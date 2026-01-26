@@ -39,7 +39,7 @@ Transmitter* SpheroProtocol::createTransmitter(uint8_t transmitterType) {
 bool SpheroProtocol::isAcceptableForDiscovery(BLEAdvertisedDevice advertisedDevice) {
     std::string str(advertisedDevice.getName().c_str());
 
-    if(str.getName().rfind("D2-", 0) == 0) {
+    if(str.rfind("D2-", 0) == 0) {
         Serial.printf("Found device with name \"%s\"\n", advertisedDevice.getName().c_str());
         return true;
     }
