@@ -37,7 +37,9 @@ Transmitter* SpheroProtocol::createTransmitter(uint8_t transmitterType) {
 }
 
 bool SpheroProtocol::isAcceptableForDiscovery(BLEAdvertisedDevice advertisedDevice) {
-    if(advertisedDevice.getName().rfind("D2-", 0) == 0) {
+    std::string str(advertisedDevice.getName().c_str());
+
+    if(str.getName().rfind("D2-", 0) == 0) {
         Serial.printf("Found device with name \"%s\"\n", advertisedDevice.getName().c_str());
         return true;
     }
@@ -82,7 +84,7 @@ bool SpheroProtocol::connect(const NodeAddr& addr) {
     
     // Connect to the remove BLE Server.
     Serial.printf("Connecting to %s\n", addr.toString().c_str());
-    pClient_->connect(BLEAddress(addr.toString()), esp_ble_addr_type_t(1));
+    pClient_->connect(BLEAddress(addr.toString().c_str()), esp_ble_addr_type_t(1));
     Serial.printf(" - Connected to server\n");
     pClient_->setMTU(46); //set client to request maximum MTU from server (default is 23 otherwise)
   

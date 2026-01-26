@@ -22,7 +22,7 @@ bool BLEProtocol::init(const std::string& nodeName) {
     }
 
     bb::rmt::printf("Initializing BLE device\n");
-    BLEDevice::init(nodeName);
+    BLEDevice::init(nodeName.c_str());
     nodeName_ = nodeName;
     initialized_ = true;
     return true;
@@ -59,7 +59,7 @@ void BLEProtocol::onResult(BLEAdvertisedDevice advertisedDevice) {
 //      Serial.printf("Found device with name \"%s\"\n", advertisedDevice.getName().c_str());
 //      if(advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(SERVICE_UUID)) {
     if(isAcceptableForDiscovery(advertisedDevice)) {
-        esp_bd_addr_t* addr = advertisedDevice.getAddress().getNative();
+        esp_bd_addr_t* addr = (esp_bd_addr_t*)advertisedDevice.getAddress().getNative();
         Serial.printf("Found node %s\n", advertisedDevice.toString().c_str());
         Serial.printf("Address type 0x%x\n", advertisedDevice.getAddressType());
 

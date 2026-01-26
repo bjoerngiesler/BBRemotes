@@ -942,9 +942,9 @@ bool MXBProtocol::receive(APIFrame& frame) {
 
 	//if(!uart_->available()) delayMicroseconds(200);
 	//if(!uart_->available()) return false;	
-	if(waitfor([=]()->bool {return uart_->available();}, 200) == false) return false;
+	if(waitfor([this]()->bool {return uart_->available();}, 200) == false) return false;
 	uint8_t lengthMSB = readEscapedByte(uart_);
-	if(waitfor([=]()->bool {return uart_->available();}, 200) == false) return false;
+	if(waitfor([this]()->bool {return uart_->available();}, 200) == false) return false;
 	//if(!uart_->available()) delayMicroseconds(200);
 	//if(!uart_->available()) return false;	
 	uint8_t lengthLSB = readEscapedByte(uart_);
