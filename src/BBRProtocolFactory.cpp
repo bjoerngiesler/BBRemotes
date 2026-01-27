@@ -227,7 +227,7 @@ bool ProtocolFactory::storeProtocol(const std::string& name, Protocol* proto) {
 
     if(bumpNum == true) storage_.num++;
 
-    return true; //setLastUsedProtocolName(name);
+    return setLastUsedProtocolName(name);
 }
 
 bool ProtocolFactory::eraseProtocol(const std::string& name) {

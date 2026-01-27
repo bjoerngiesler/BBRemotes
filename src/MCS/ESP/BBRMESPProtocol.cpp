@@ -28,7 +28,10 @@ MESPProtocol::MESPProtocol() {
 
 MESPProtocol::~MESPProtocol() {
     Serial.printf("Shutting down ESP-NOW.\n");
+    esp_now_unregister_recv_cb();
+    esp_now_unregister_send_cb();
     esp_now_deinit();
+    Serial.printf("ESP-NOW shutdown successful.\n");
 }
 
 bool MESPProtocol::init(const std::string& nodeName) {
