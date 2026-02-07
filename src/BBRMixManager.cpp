@@ -25,7 +25,6 @@ const AxisMix& MixManager::mixForInput(InputID input) const {
 
 bool MixManager::setMix(InputID input, const AxisMix& mix) { 
     if(input == INPUT_INVALID) return false;
-    bb::rmt::printf("Setting mix for input %d\n", input);
     mixes_[input] = mix;
     return true;
 }

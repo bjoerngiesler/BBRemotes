@@ -139,13 +139,44 @@ bool MESPProtocol::sendPacket(const NodeAddr& addr, MPacket& packet, bool bumpS)
     packet.source = source_;
     packet.crc = packet.calculateCRC();
 
-    bb::rmt::printf("Sending packet to %s\n", addr.toString().c_str());
+    //bb::rmt::printf("Sending packet to %s\n", addr.toString().c_str());
+
     esp_err_t error = esp_now_send(addr.byte, (uint8_t*)&packet, sizeof(packet));
     if(error == ESP_OK) {
         if(bumpS) bumpSeqnum();
         return true;
     } else {
-        bb::rmt::printf("esp_now_send() returns error %d\n", error);
+        switch(error) {
+        case ESP_ERR_ESPNOW_NOT_INIT:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_NOT_INIT)\n", error);
+            break;
+        case ESP_ERR_ESPNOW_ARG:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_ARG)\n", error);
+            break;
+        case ESP_ERR_ESPNOW_NO_MEM:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_NO_MEM)\n", error);
+            break;
+        case ESP_ERR_ESPNOW_FULL:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_FULL)\n", error);
+            break;
+        case ESP_ERR_ESPNOW_NOT_FOUND:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_NOT_FOUND)\n", error);
+            break;
+        case ESP_ERR_ESPNOW_INTERNAL:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_INTERNAL)\n", error);
+            break;
+        case ESP_ERR_ESPNOW_EXIST:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_EXIST)\n", error);
+            break;
+        case ESP_ERR_ESPNOW_IF:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_IF)\n", error);
+            break;
+        case ESP_ERR_ESPNOW_CHAN:
+            bb::rmt::printf("esp_now_send() returns error 0x%x (ESP_ERR_ESPNOW_CHAN)\n", error);
+            break;
+        default:
+            bb::rmt::printf("esp_now_send() returns unknown error 0x%x\n", error);
+        }
     }
     return false;
 }

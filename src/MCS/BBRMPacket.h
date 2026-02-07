@@ -29,7 +29,8 @@ struct __attribute__ ((packed)) MPairingPacket {
 		PAIRING_DISCOVERY_REPLY     = 1,
 		PAIRING_REQUEST             = 2,
 		PAIRING_REPLY               = 3,
-		PAIRING_INTRODUCTION        = 4
+		PAIRING_INTRODUCTION        = 4,
+		PAIRING_COMEALIVE           = 5
 	};
 
 	enum PairingReplyResult {
@@ -241,10 +242,10 @@ struct __attribute__ ((packed)) MConfigPacket {
 	static const uint64_t MAGIC = 0xbadeaffebabeface;
 
 	enum ConfigType {
-		CONFIG_GET_NUM_INPUTS           = 4, // CountPacket receiver <-- sender
-		CONFIG_GET_INPUT                = 5, // NamePacket receiver <-- sender
-		CONFIG_GET_MIX                  = 6, // MixPacket receiver <-- sender 
-		CONFIG_SET_MIX                  = 7, // MixPacket sender --> receiver
+		CONFIG_GET_NUM_INPUTS           = 4, // CountPacket sender --> receiver
+		CONFIG_GET_INPUT_NAME           = 5, // NamePacket  sender --> receiver
+		CONFIG_GET_MIX                  = 6, // MixPacket   sender --> receiver
+		CONFIG_SET_MIX                  = 7, // MixPacket   sender --> receiver
 		CONFIG_FACTORY_RESET            = 63  // L->R - parameter: MAGIC
 	};
 

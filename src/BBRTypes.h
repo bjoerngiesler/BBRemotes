@@ -137,6 +137,8 @@ struct __attribute__ ((packed)) NodeDescription {
 // Note that these are truncated to 10 chars in MCP packets, so don't make them too long.
 static const std::string INPUT_NAME_SPEED        = "Speed";      // body speed over ground -- v_x, forward positive
 static const std::string INPUT_NAME_TURN_RATE    = "TurnRate";   // body turn rate         -- v_alpha, left positive
+static const std::string INPUT_NAME_X            = "X";          // movement in X          -- v_x, forward positive
+static const std::string INPUT_NAME_Y            = "Y";          // movement in Y          -- v_y, forward positive
 static const std::string INPUT_NAME_DOME_RATE    = "DomeRate";   // dome turn rate         -- left positive
 static const std::string INPUT_NAME_DOME_ANGLE   = "DomeAngle";  // dome absolute angle    -- left positive
 static const std::string INPUT_NAME_TURN_ANGLE   = "TurnAngle";  // body absolute angle    -- alpha, left positive

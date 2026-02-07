@@ -17,6 +17,7 @@ using namespace bb::rmt;
 
 
 MProtocol::MProtocol(): packetReceivedCB_(nullptr) {
+	sentComealive_ = false;
 	pairingSecret_ = 0xbabeface;
     seqnum_ = 0;
 }
@@ -106,8 +107,8 @@ bool MProtocol::incomingPacket(const NodeAddr& addr, const MPacket& packet) {
 
 bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource source, uint8_t seqnum, MConfigPacket& packet) {
 	if(!isPairedAsConfigurator(addr)) {
-		printf("Not accepting config packets from %s because it's not a configurator\n", addr.toString().c_str());
-		return false;
+		printf("Warning: Shouldn't accept config packets from %s because it's not a configurator\n", addr.toString().c_str());
+		//return false;
 	}
 
 	if(packet.type == packet.CONFIG_GET_NUM_INPUTS) {
@@ -117,7 +118,7 @@ bool MProtocol::incomingConfigPacket(const NodeAddr& addr, MPacket::PacketSource
 		return true;
 	}
 
-	if(packet.type == packet.CONFIG_GET_INPUT) {
+	if(packet.type == packet.CONFIG_GET_INPUT_NAME) {
 		if(receiver_ == nullptr) return false;
 		if(receiver_->numInputs() <= packet.cfgPayload.name.index) return false;
 		const std::string& name = receiver_->inputName(packet.cfgPayload.name.index);
@@ -267,6 +268,14 @@ bool MProtocol::incomingPairingPacket(const NodeAddr& addr, MPacket::PacketSourc
 		return true;
 	}
 
+	if(packet.type == MPairingPacket::PAIRING_COMEALIVE) {
+		bb::rmt::printf("Received COMEALIVE packet from %s\n", addr.toString().c_str());
+		if(nodeCameAliveCB_ != nullptr) {
+			nodeCameAliveCB_(addr, packet);
+		}
+		return true;
+	}
+
 	printf("Unknown pairing packet type %d\n", packet.type);
 	return false;
 }
@@ -361,13 +370,10 @@ bool MProtocol::pairWith(const NodeDescription& descr) {
 	printf("Received PACKET_TYPE_PAIRING reply from %s.\n", addr.toString().c_str());
 	const MPairingPacket::PairingReply& r = pairingReplyPacket.payload.pairing.pairingPayload.reply;
 
-	if(r.res == MPairingPacket::PAIRING_REPLY_INVALID_SECRET) {
-		printf("Pairing reply: Invalid secret.\n");
+	if(r.res != MPairingPacket::PAIRING_REPLY_OK) {
+		printf("Pairing reply: Error %d.\n", r.res);
 		return true;
-	} else if(r.res == MPairingPacket::PAIRING_REPLY_OTHER_ERROR) {
-		printf("Pairing reply: Other error.\n");
-		return true;
-	}
+	} 
 
 	for(auto& n: discoveredNodes_) {
 		if(n.addr == addr) {
@@ -403,7 +409,10 @@ bool MProtocol::retrieveInputs(const NodeDescription& descr) {
 	NodeAddr replyAddr;
 	NodeAddr addr = descr.addr;
 	std::function<bool(const MPacket&, const NodeAddr&)> fn = [addr](const MPacket& p, const NodeAddr& a) {
-			return a == addr && p.type == p.PACKET_TYPE_CONFIG && p.payload.config.type == MConfigPacket::CONFIG_GET_NUM_INPUTS;
+		return a == addr && 
+		       p.type == p.PACKET_TYPE_CONFIG && 
+			   p.payload.config.type == MConfigPacket::CONFIG_GET_NUM_INPUTS &&
+			   p.payload.config.reply == MConfigPacket::CONFIG_REPLY_OK;
 	};
 	if(waitForPacket(fn, replyAddr, replyPacket, true, 0.5) == false) {
 		printf("Timed out waiting for num inputs reply.\n");
@@ -412,6 +421,101 @@ bool MProtocol::retrieveInputs(const NodeDescription& descr) {
 
 	printf("Received num inputs reply -- %d inputs\n", replyPacket.payload.config.cfgPayload.count.count);
 
+	MixManager& mgr = mixManager(addr);
+	mgr.clearMixes();
+
+	std::vector<std::string>& names = inputs_[addr];
+	names.clear();
+
+	uint8_t count = replyPacket.payload.config.cfgPayload.count.count;
+	for(uint8_t i=0; i<count; i++) {
+		printf("Requesting name of input %d... ", i);
+		c.type = MConfigPacket::CONFIG_GET_INPUT_NAME;
+		c.cfgPayload.name.index = i;
+
+		sendPacket(descr.addr, packet);
+		
+		std::function<bool(const MPacket&, const NodeAddr&)> fnName = [addr](const MPacket& p, const NodeAddr& a) {
+			return a == addr && 
+			       p.type == p.PACKET_TYPE_CONFIG && 
+				   p.payload.config.type == MConfigPacket::CONFIG_GET_INPUT_NAME &&
+				   p.payload.config.reply == MConfigPacket::CONFIG_REPLY_OK;
+		};
+		if(waitForPacket(fnName, replyAddr, replyPacket, true, 0.5) == false) {
+			printf("Timed out waiting for num inputs reply.\n");
+			return false;
+		}
+		
+		std::string name = replyPacket.payload.config.cfgPayload.name.name;
+		printf("got \"%s\".\n", name.c_str());
+
+		printf("Requesting mix for input %d... ", i);
+
+		c.type = MConfigPacket::CONFIG_GET_MIX;
+		c.cfgPayload.mix.input = i;
+
+		sendPacket(descr.addr, packet);
+		
+		std::function<bool(const MPacket&, const NodeAddr&)> fnMix = [addr](const MPacket& p, const NodeAddr& a) {
+			return a == addr && 
+			       p.type == p.PACKET_TYPE_CONFIG && 
+				   p.payload.config.type == MConfigPacket::CONFIG_GET_MIX &&
+				   p.payload.config.reply == MConfigPacket::CONFIG_REPLY_OK;
+		};
+		if(waitForPacket(fnMix, replyAddr, replyPacket, true, 0.5) == false) {
+			printf("Timed out waiting for num inputs reply.\n");
+			return false;
+		}
+
+		AxisMix mix;
+		mixPacketToAxisMix(replyPacket.payload.config.cfgPayload.mix, i, mix);
+
+		printf("got (%d %d/%d/%d/%d/%d & %d %d/%d/%d/%d/%d type %d)\n",
+		       mix.axis1, mix.interp1.i0, mix.interp1.i25, mix.interp1.i50, mix.interp1.i75, mix.interp1.i100,
+		       mix.axis2, mix.interp2.i0, mix.interp2.i25, mix.interp2.i50, mix.interp2.i75, mix.interp2.i100,
+			   mix.mixType);
+			   
+		names.push_back(name);
+		mgr.setMix(i, mix);
+	}
+
+	return true;
+}
+
+bool MProtocol::sendMixes(const NodeDescription& descr) {
+	MixManager& mgr = mixManager(descr.addr);
+
+	MPacket packet;
+	packet.source = source_;
+	packet.type = MPacket::PACKET_TYPE_CONFIG;
+	MConfigPacket& c = packet.payload.config;
+	c.type = MConfigPacket::CONFIG_SET_MIX;
+	c.reply = MConfigPacket::CONFIG_TRANSMIT_REPLY;
+
+	for(auto& m: mgr.mixes()) {
+		Interpolator i1 = m.second.interp1;
+		Interpolator i2 = m.second.interp2;
+		AxisID a1 = m.second.axis1;
+		AxisID a2 = m.second.axis2;
+		MixType t = m.second.mixType;
+
+		c.cfgPayload.mix.input = m.first;
+		c.cfgPayload.mix.a1 = a1;
+		c.cfgPayload.mix.a2 = a2;
+		c.cfgPayload.mix.i1_0 = i1.i0;
+		c.cfgPayload.mix.i1_25 = i1.i25;
+		c.cfgPayload.mix.i1_50 = i1.i50;
+		c.cfgPayload.mix.i1_75 = i1.i75;
+		c.cfgPayload.mix.i1_100 = i1.i100;
+		c.cfgPayload.mix.i2_0 = i2.i0;
+		c.cfgPayload.mix.i2_25 = i2.i25;
+		c.cfgPayload.mix.i2_50 = i2.i50;
+		c.cfgPayload.mix.i2_75 = i2.i75;
+		c.cfgPayload.mix.i2_100 = i2.i100;
+		c.cfgPayload.mix.m = t;
+
+		sendPacket(descr.addr, packet);
+	}
 	return true;
 }
 
@@ -422,6 +526,10 @@ bool MProtocol::retrieveMixes(const NodeDescription& descr) {
 
 
 bool MProtocol::step() {
+	if(sentComealive_ == false) {
+		sendComealive();
+	}
+
     return Protocol::step();
 }
 
@@ -473,4 +581,27 @@ void MProtocol::printInfo() {
 	Protocol::printInfo();
 	if(primary_) bb::rmt::printf("This protocol is primary.\n");
 	else bb::rmt::printf("This protocol is secondary.\n");
+}
+
+void MProtocol::sendComealive() {
+	if(sentComealive_ == true) return;
+	
+	MPacket packet;
+	packet.source = source_;
+	packet.type = MPacket::PACKET_TYPE_PAIRING;
+	MPairingPacket& p = packet.payload.pairing;
+
+	p.type = p.PAIRING_COMEALIVE;
+	p.pairingPayload.discovery.builderId = builderId_;
+	p.pairingPayload.discovery.stationId = stationId_;
+	p.pairingPayload.discovery.stationDetail = stationDetail_;
+	p.pairingPayload.discovery.isTransmitter = (transmitter_ != nullptr);
+	p.pairingPayload.discovery.isReceiver = (receiver_ != nullptr);
+	p.pairingPayload.discovery.isConfigurator = (configurator_ != nullptr);
+	p.pairingPayload.discovery.name = nodeName_;
+
+	sendBroadcastPacket(packet);
+
+	sentComealive_ = true;
+	bb::rmt::printf("Comealive sent!\n");
 }

@@ -19,7 +19,7 @@ static int vprintf(const char* format, va_list args) {
     char *buf = new char[len];
     vsnprintf(buf, len, format, args);
     printfFinal(buf);
-    free(buf);
+    delete[] buf;
     return len;
 }
 

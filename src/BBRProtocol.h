@@ -206,6 +206,13 @@ public:
     //! Return the current packet sequence number.
     virtual uint8_t seqnum() { return seqnum_; }
 
+    void setBuilderId(uint8_t builderId) { builderId_ = builderId; }
+	uint8_t builderId() { return builderId_; }
+	void setStationId(uint8_t stationId) { stationId_ = stationId; }
+	uint8_t stationId() { return stationId_; }
+	void setStationDetail(uint8_t stationDetail) { stationDetail_ = stationDetail; }
+	uint8_t stationDetail() { return stationDetail_; }
+
 protected:
     virtual bool connect(const NodeAddr& addr) { return false; }
     virtual void commHappened();
@@ -229,6 +236,8 @@ protected:
     unsigned long usLastTransmit_;
 
     bool commTimeoutWDCalled_;
+
+    uint8_t builderId_, stationId_, stationDetail_;
 
     uint8_t seqnum_;
 };

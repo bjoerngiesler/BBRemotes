@@ -41,6 +41,8 @@ public:
     virtual void bumpSeqnum();
     virtual uint8_t seqnum() { return seqnum_; }
 
+    void sendComealive();
+
     void setPacketSource(MPacket::PacketSource src) { source_ = src; }
 	MPacket::PacketSource packetSource() { return source_; }
 
@@ -50,16 +52,10 @@ public:
     void setTransmittersArePrimary(bool p) { primary_ = p; if(transmitter_ != nullptr) transmitter_->setPrimary(p); }
     bool areTransmittersPrimary() { return primary_; }
 
-	void setBuilderId(uint8_t builderId) { builderId_ = builderId; }
-	uint8_t builderId() { return builderId_; }
-	void setStationId(uint8_t stationId) { stationId_ = stationId; }
-	uint8_t stationId() { return stationId_; }
-	void setStationDetail(uint8_t stationDetail) { stationDetail_ = stationDetail; }
-	uint8_t stationDetail() { return stationDetail_; }
-
     void setPairingSecret(uint32_t secret) { pairingSecret_ = secret; }
 
     void setPacketReceivedCB(std::function<void(const NodeAddr&, const MPacket&)> cb) { packetReceivedCB_ = cb; }
+    void setNodeCameAliveCB(std::function<void(const NodeAddr&, const MPairingPacket&)> cb) { nodeCameAliveCB_ = cb; }
 
     bool receiveFromSerial(HardwareSerial *serial);
 
@@ -73,14 +69,19 @@ public:
 
     virtual void printInfo();
 
+    virtual bool sendMixes(const NodeDescription& descr);
+
+
 protected:
     bool isPairedAsConfigurator(const NodeAddr& addr);
 
     std::function<void(const NodeAddr&, const MPacket&)> packetReceivedCB_;
-    uint8_t builderId_, stationId_, stationDetail_;
+    std::function<void(const NodeAddr&, const MPairingPacket&)> nodeCameAliveCB_;
+
     uint32_t pairingSecret_;
 	MPacket::PacketSource source_;
     bool primary_;
+    bool sentComealive_;
 
     std::string serialRecStr_;
 };

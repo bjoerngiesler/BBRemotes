@@ -24,7 +24,7 @@ uint8_t speedInput, turnInput;
 
 // Called whenever a data packet was received.
 void dataFinishedCB(const NodeAddr& addr, uint8_t seqnum) {
-  bb::rmt::printf("Speed: %f Turn: %f Seqnum: %d\n", speed, turn, seqnum);
+  //bb::rmt::printf("Speed: %f Turn: %f Seqnum: %d\n", speed, turn, seqnum);
 }
 
 // Called whenever nothing was received for a certain time (default: 0.5s).
