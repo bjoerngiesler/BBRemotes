@@ -90,7 +90,7 @@ bool MESPProtocol::discoverNodes(float timeout) {
 }
 
 void MESPProtocol::onDataSent(const unsigned char *buf, esp_now_send_status_t status) {
-    if(status != ESP_OK) Serial.printf("onDataSent() received error status %d\n", status);
+    //if(status != ESP_OK) Serial.printf("onDataSent() received error status %d\n", status);
 }
 
 void MESPProtocol::onDataReceived(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
