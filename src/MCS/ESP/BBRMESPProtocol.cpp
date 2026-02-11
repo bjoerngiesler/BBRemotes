@@ -123,7 +123,7 @@ bool MESPProtocol::step() {
     cleanupTempPeers();
 
     packetQueueMutex_.lock();
-    bb::rmt::printf("%d packets in queue\n", packetQueue_.size());
+    //bb::rmt::printf("%d packets in queue\n", packetQueue_.size());
     std::deque<AddrAndPacket> queue = packetQueue_;
     packetQueue_.clear();
     packetQueueMutex_.unlock();
