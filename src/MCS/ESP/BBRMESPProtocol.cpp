@@ -122,11 +122,14 @@ bool MESPProtocol::step() {
     enterPairingModeIfNecessary();
     cleanupTempPeers();
 
-    while(packetQueue_.size()) {
-        packetQueueMutex_.lock();
-        AddrAndPacket ap = packetQueue_.front();
-        packetQueue_.pop_front();
-        packetQueueMutex_.unlock();
+    packetQueueMutex_.lock();
+    std::deque<AddrAndPacket> queue = packetQueue_;
+    packetQueue_.clear();
+    packetQueueMutex_.unlock();
+
+    while(queue.size()) {
+        AddrAndPacket ap = queue.front();
+        queue.pop_front();
         //printf("Packet from %s type %d\n", ap.addr.toString().c_str(), ap.packet.type);
         incomingPacket(ap.addr, ap.packet);
     }
